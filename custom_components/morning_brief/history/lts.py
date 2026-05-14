@@ -11,10 +11,10 @@ from __future__ import annotations
 
 import logging
 from datetime import date, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from homeassistant.components.recorder import statistics
-from homeassistant.components.recorder.util import get_instance
+from homeassistant.components.recorder.util import get_instance  # type: ignore[attr-defined]
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
@@ -130,7 +130,7 @@ async def get_lts_daily(
 
     out: dict[date, float | None] = {d: None for d in _iter_dates(start_date, end_date)}
 
-    rows: list[dict[str, Any]] = rows_by_id.get(entity_id, [])
+    rows = cast(list[dict[str, Any]], rows_by_id.get(entity_id, []))
     for row in rows:
         bucket_date = _parse_bucket_start(row.get("start"))
         if bucket_date is None or bucket_date not in out:

@@ -17,7 +17,7 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 from homeassistant.components.recorder import history as recorder_history
-from homeassistant.components.recorder.util import get_instance
+from homeassistant.components.recorder.util import get_instance  # type: ignore[attr-defined]
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
