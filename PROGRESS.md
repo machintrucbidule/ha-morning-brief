@@ -8,12 +8,13 @@ Live checklist for the integration repo. Updated continuously. Phases mirror Sec
 - [x] PROGRESS.md
 
 ## Step 1 — Repo scaffolding
-- [x] Root files (README.md stub, CHANGELOG.md, info.md, hacs.json, LICENSE, .gitignore)
+- [x] Root files (README.md stub, CHANGELOG.md, info.md, hacs.json, LICENSE, .gitignore, pyproject.toml)
 - [x] .github/workflows stubs (hacs-validate, lint, test)
 - [x] docs/ tree (providers, triggers, ai_providers, multilanguage, architecture, img/, examples/)
 - [x] blueprints/automation/morning_brief/ tree
 - [x] tests/ tree with __init__.py + conftest.py stubs + fixtures + subdirs
 - [x] custom_components/morning_brief/ tree (all stub files per Section 3.1)
+- [x] custom_components/morning_brief/brand/ placeholder PNG icons (icon, dark_icon, @2x — transparent; user to replace before v1.0.0)
 
 ## Phase 1 — Foundation
 - [x] manifest.json (HA Core min version, dependencies, subentry types declared)
