@@ -1,0 +1,71 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Morning Brief — nouvelle instance",
+        "description": "Choisissez le type de brief à créer. Vous pouvez faire tourner plusieurs instances en parallèle (matin, soir, hebdo).",
+        "data": {
+          "report_type": "Type de brief"
+        }
+      }
+    },
+    "error": {
+      "unknown": "Erreur inconnue. Consultez les logs Home Assistant."
+    },
+    "abort": {
+      "already_configured": "Cette instance est déjà configurée."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Morning Brief — options",
+        "description": "Ajustez les réglages, champs, catégories et déclencheur pour cette instance."
+      }
+    }
+  },
+  "services": {
+    "generate": {
+      "name": "Générer le brief",
+      "description": "Génère un brief pour l'instance sélectionnée."
+    },
+    "preview": {
+      "name": "Prévisualiser",
+      "description": "Génère un brief sans le persister ni envoyer de notification."
+    },
+    "advance_day": {
+      "name": "Avancer le jour logique",
+      "description": "Pour la stratégie de jour logique manuelle : avance la date logique d'un jour."
+    },
+    "clear_history": {
+      "name": "Effacer l'historique",
+      "description": "Supprime tous les briefs stockés pour cette instance."
+    },
+    "test_ai_provider": {
+      "name": "Tester le fournisseur IA",
+      "description": "Valide les identifiants du fournisseur IA configuré."
+    },
+    "get_last_brief": {
+      "name": "Récupérer le dernier brief",
+      "description": "Retourne le JSON canonique du dernier brief."
+    },
+    "get_brief_by_uuid": {
+      "name": "Récupérer un brief par UUID",
+      "description": "Retourne un brief passé spécifique."
+    },
+    "reorder_fields": {
+      "name": "Réordonner les champs",
+      "description": "Définit l'ordre d'affichage des champs."
+    }
+  },
+  "selector": {
+    "report_type": {
+      "options": {
+        "morning": "Matin",
+        "evening": "Soir",
+        "weekly": "Hebdomadaire"
+      }
+    }
+  },
+  "exceptions": {}
+}

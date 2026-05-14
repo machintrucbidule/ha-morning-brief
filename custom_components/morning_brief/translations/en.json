@@ -1,0 +1,71 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Morning Brief — new instance",
+        "description": "Choose the type of brief you want to create. You can run multiple instances (one morning, one evening, one weekly) side by side.",
+        "data": {
+          "report_type": "Report type"
+        }
+      }
+    },
+    "error": {
+      "unknown": "Unknown error. Check the Home Assistant logs."
+    },
+    "abort": {
+      "already_configured": "This instance is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Morning Brief — options",
+        "description": "Adjust settings, fields, categories, and trigger for this instance."
+      }
+    }
+  },
+  "services": {
+    "generate": {
+      "name": "Generate brief",
+      "description": "Generate a brief for the selected instance."
+    },
+    "preview": {
+      "name": "Preview brief",
+      "description": "Generate a brief without persisting or notifying."
+    },
+    "advance_day": {
+      "name": "Advance logical day",
+      "description": "For the manual logical-day strategy: advance the logical date by one day."
+    },
+    "clear_history": {
+      "name": "Clear history",
+      "description": "Delete all stored briefs for this instance."
+    },
+    "test_ai_provider": {
+      "name": "Test AI provider",
+      "description": "Validate the configured AI provider credentials."
+    },
+    "get_last_brief": {
+      "name": "Get last brief",
+      "description": "Return the most recent brief's canonical JSON."
+    },
+    "get_brief_by_uuid": {
+      "name": "Get brief by UUID",
+      "description": "Return a specific past brief."
+    },
+    "reorder_fields": {
+      "name": "Reorder fields",
+      "description": "Set the display order for fields."
+    }
+  },
+  "selector": {
+    "report_type": {
+      "options": {
+        "morning": "Morning",
+        "evening": "Evening",
+        "weekly": "Weekly"
+      }
+    }
+  },
+  "exceptions": {}
+}
