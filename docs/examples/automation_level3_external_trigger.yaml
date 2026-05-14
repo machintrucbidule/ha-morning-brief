@@ -1,0 +1,10 @@
+# Stub — filled in Phase 11.
+# Example automation for trigger level 3 (external) — user fires the service themselves.
+alias: Generate morning brief (custom)
+trigger:
+  - platform: time
+    at: "07:30:00"
+action:
+  - service: morning_brief.generate
+    data:
+      instance_id: REPLACE_WITH_YOUR_INSTANCE_ID

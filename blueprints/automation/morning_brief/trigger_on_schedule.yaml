@@ -1,0 +1,6 @@
+# Stub — filled in Phase 11.
+blueprint:
+  name: Morning Brief — trigger on schedule
+  description: Stub. Will fire the morning_brief.generate service at a configurable time on configurable days.
+  domain: automation
+  input: {}

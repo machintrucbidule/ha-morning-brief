@@ -1,0 +1,7 @@
+# Stub — filled in Phase 11.
+# See MORNING_BRIEF_SPEC.md Section 16.4 (Blueprints) and Section 33.
+blueprint:
+  name: Morning Brief — trigger on wake
+  description: Stub. Will fire the morning_brief.generate service when the configured sleep sensor transitions to awake.
+  domain: automation
+  input: {}
