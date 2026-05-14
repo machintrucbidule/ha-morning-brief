@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
 from homeassistant.core import HomeAssistant
 
 from custom_components.morning_brief.const import (
@@ -28,7 +27,6 @@ def _make_brief(uuid: str, logical_date: str = "2026-05-14") -> dict[str, Any]:
     }
 
 
-@pytest.mark.asyncio
 async def test_add_and_get_latest(hass: HomeAssistant) -> None:
     """Adding a brief makes it retrievable as latest and by UUID."""
     store = BriefStore(hass, "entry-1", retention=5)
@@ -43,7 +41,6 @@ async def test_add_and_get_latest(hass: HomeAssistant) -> None:
     assert by_uuid["uuid"] == "a"
 
 
-@pytest.mark.asyncio
 async def test_newest_first_ordering(hass: HomeAssistant) -> None:
     """The store keeps the newest brief at index 0 (LIFO insertion order)."""
     store = BriefStore(hass, "entry-2", retention=5)
@@ -54,7 +51,6 @@ async def test_newest_first_ordering(hass: HomeAssistant) -> None:
     assert [b["uuid"] for b in briefs] == ["c", "b", "a"]
 
 
-@pytest.mark.asyncio
 async def test_fifo_rotation_at_retention_limit(hass: HomeAssistant) -> None:
     """Beyond `retention`, the oldest briefs are dropped."""
     store = BriefStore(hass, "entry-3", retention=3)
@@ -69,7 +65,6 @@ async def test_fifo_rotation_at_retention_limit(hass: HomeAssistant) -> None:
     assert await store.get_brief("b") is None
 
 
-@pytest.mark.asyncio
 async def test_get_brief_returns_none_when_missing(hass: HomeAssistant) -> None:
     """Unknown UUIDs return None, not an exception."""
     store = BriefStore(hass, "entry-4", retention=5)
@@ -77,7 +72,6 @@ async def test_get_brief_returns_none_when_missing(hass: HomeAssistant) -> None:
     assert await store.get_brief("zzz") is None
 
 
-@pytest.mark.asyncio
 async def test_get_latest_empty_store(hass: HomeAssistant) -> None:
     """An empty store yields None for get_latest and [] for list_briefs."""
     store = BriefStore(hass, "entry-5", retention=5)
@@ -85,7 +79,6 @@ async def test_get_latest_empty_store(hass: HomeAssistant) -> None:
     assert await store.list_briefs() == []
 
 
-@pytest.mark.asyncio
 async def test_clear(hass: HomeAssistant) -> None:
     """Clear removes every brief but preserves the underlying file."""
     store = BriefStore(hass, "entry-6", retention=5)
@@ -96,7 +89,6 @@ async def test_clear(hass: HomeAssistant) -> None:
     assert await store.get_latest() is None
 
 
-@pytest.mark.asyncio
 async def test_retention_is_clamped(hass: HomeAssistant) -> None:
     """Retention is clamped into [MIN_RETENTION, MAX_RETENTION]."""
     too_low = BriefStore(hass, "entry-7", retention=1)
@@ -109,7 +101,6 @@ async def test_retention_is_clamped(hass: HomeAssistant) -> None:
     assert default.retention == DEFAULT_RETENTION
 
 
-@pytest.mark.asyncio
 async def test_set_retention_updates_cap_on_next_add(hass: HomeAssistant) -> None:
     """Shrinking retention via set_retention takes effect on the next add."""
     store = BriefStore(hass, "entry-10", retention=10)
@@ -124,7 +115,6 @@ async def test_set_retention_updates_cap_on_next_add(hass: HomeAssistant) -> Non
     assert [b["uuid"] for b in briefs] == ["e", "d"]
 
 
-@pytest.mark.asyncio
 async def test_async_remove_drops_storage(hass: HomeAssistant) -> None:
     """async_remove deletes the storage; a fresh store after returns []."""
     store = BriefStore(hass, "entry-11", retention=5)

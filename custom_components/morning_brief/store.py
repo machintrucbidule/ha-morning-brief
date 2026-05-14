@@ -86,7 +86,7 @@ class BriefStore:
             return {"briefs": []}
         if "briefs" not in data or not isinstance(data["briefs"], list):
             data["briefs"] = []
-        return cast(dict[str, Any], data)
+        return data
 
     async def add_brief(self, brief: dict[str, Any]) -> None:
         """Insert a brief at the head, then truncate to ``retention``.
