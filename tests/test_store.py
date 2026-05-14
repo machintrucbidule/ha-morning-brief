@@ -52,15 +52,18 @@ async def test_newest_first_ordering(hass: HomeAssistant) -> None:
 
 
 async def test_fifo_rotation_at_retention_limit(hass: HomeAssistant) -> None:
-    """Beyond `retention`, the oldest briefs are dropped."""
-    store = BriefStore(hass, "entry-3", retention=3)
-    for uuid in ("a", "b", "c", "d", "e"):
+    """Beyond `retention`, the oldest briefs are dropped.
+
+    Uses retention=5 (MIN_RETENTION); the spec D16 forbids retention < 5.
+    """
+    store = BriefStore(hass, "entry-3", retention=5)
+    for uuid in ("a", "b", "c", "d", "e", "f", "g"):
         await store.add_brief(_make_brief(uuid))
 
     briefs = await store.list_briefs()
-    assert len(briefs) == 3
+    assert len(briefs) == 5
     # Newest first; oldest two ("a" and "b") were rotated out.
-    assert [b["uuid"] for b in briefs] == ["e", "d", "c"]
+    assert [b["uuid"] for b in briefs] == ["g", "f", "e", "d", "c"]
     assert await store.get_brief("a") is None
     assert await store.get_brief("b") is None
 
@@ -102,17 +105,21 @@ async def test_retention_is_clamped(hass: HomeAssistant) -> None:
 
 
 async def test_set_retention_updates_cap_on_next_add(hass: HomeAssistant) -> None:
-    """Shrinking retention via set_retention takes effect on the next add."""
-    store = BriefStore(hass, "entry-10", retention=10)
-    for uuid in ("a", "b", "c", "d"):
-        await store.add_brief(_make_brief(uuid))
-    assert len(await store.list_briefs()) == 4
+    """Shrinking retention via set_retention takes effect on the next add.
 
-    store.set_retention(2)
-    await store.add_brief(_make_brief("e"))
+    Spec D16 forbids retention < MIN_RETENTION (5), so we shrink from 10 to 5
+    and verify the next add evicts down to 5 briefs.
+    """
+    store = BriefStore(hass, "entry-10", retention=10)
+    for uuid in ("a", "b", "c", "d", "e", "f", "g"):
+        await store.add_brief(_make_brief(uuid))
+    assert len(await store.list_briefs()) == 7
+
+    store.set_retention(MIN_RETENTION)
+    await store.add_brief(_make_brief("h"))
     briefs = await store.list_briefs()
-    assert len(briefs) == 2
-    assert [b["uuid"] for b in briefs] == ["e", "d"]
+    assert len(briefs) == MIN_RETENTION
+    assert [b["uuid"] for b in briefs] == ["h", "g", "f", "e", "d"]
 
 
 async def test_async_remove_drops_storage(hass: HomeAssistant) -> None:
