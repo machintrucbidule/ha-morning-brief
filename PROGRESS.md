@@ -28,11 +28,12 @@ Live checklist for the integration repo. Updated continuously. Phases mirror Sec
 - [x] Tests: store rotation
 
 ## Phase 2 — History layer
-- [ ] history/lts.py
-- [ ] history/short_term.py
-- [ ] history/event_detector.py
-- [ ] history/hybrid.py
-- [ ] Tests: LTS only, short-term only, mix, gaps, conflicts
+- [x] history/lts.py
+- [x] history/short_term.py
+- [x] history/event_detector.py
+- [x] history/hybrid.py
+- [x] history/__init__.py (public exports)
+- [x] Tests: LTS only, short-term only, mix, gaps, conflicts
 
 ## Phase 3 — Providers
 - [ ] providers/base.py + providers/__init__.py (registry + factory)

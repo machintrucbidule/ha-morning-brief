@@ -118,6 +118,31 @@ STATUS_NOT_APPLICABLE: Final = "not_applicable"
 # Gap-handling thresholds (D11): <30% missing → partial, ≥30% missing → unreliable.
 PARTIAL_GAP_THRESHOLD: Final = 0.30
 
+# Recorder retention fallback. The recorder's `purge_keep_days` is the truth
+# source (G7), but if we cannot read it we fall back to HA's documented default.
+DEFAULT_RECORDER_RETENTION_DAYS: Final = 10
+
+# History layer aggregations (Section 10). The LTS wrapper maps these to
+# statistic types; the short-term wrapper computes them in-process.
+HISTORY_AGG_MEAN: Final = "mean"
+HISTORY_AGG_CHANGE: Final = "change"
+HISTORY_AGG_SUM: Final = "sum"
+HISTORY_AGG_MAX: Final = "max"
+HISTORY_AGG_MIN: Final = "min"
+HISTORY_AGG_LAST: Final = "last"  # short-term only — LTS has no "last" stat type
+HISTORY_AGGREGATIONS: Final = (
+    HISTORY_AGG_MEAN,
+    HISTORY_AGG_CHANGE,
+    HISTORY_AGG_SUM,
+    HISTORY_AGG_MAX,
+    HISTORY_AGG_MIN,
+    HISTORY_AGG_LAST,
+)
+
+# Event detector defaults (D23, G1).
+DEFAULT_EVENT_EPSILON: Final = 0.0
+DEFAULT_MIN_DEBOUNCE_SECONDS: Final = 300
+
 # Anomaly modes (D15)
 ANOMALY_NONE: Final = "none"
 ANOMALY_Z_SCORE: Final = "z_score"

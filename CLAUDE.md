@@ -146,7 +146,12 @@ Python custom_component for Home Assistant. Generates configurable AI-enriched d
   - [x] store.py (BriefStore with FIFO rotation)
   - [x] __init__.py (setup_entry, unload_entry, remove_entry)
   - [x] tests/test_store.py
-- [ ] Phase 2: History layer
+- [x] Phase 2: History layer
+  - [x] history/lts.py — daily LTS via recorder.statistics_during_period
+  - [x] history/short_term.py — state_changes_during_period + per-day aggregator
+  - [x] history/event_detector.py — filter unavailable/unknown + epsilon dedup + debounce (G1, D23)
+  - [x] history/hybrid.py — LTS-first, short-term gap-fill bounded by recorder retention (G7), D11 status enum
+  - [x] history/__init__.py — public exports
 - [ ] Phase 3: Providers
 - [ ] Phase 4: Logical day & triggers
 - [ ] Phase 5: Availability gate & comparisons & anomaly
