@@ -172,7 +172,7 @@ def _attach_options(
     entry: ConfigEntry, coordinator: MorningBriefCoordinator
 ) -> None:
     """Pull language + advanced.user_custom_context out of entry.options/data."""
-    opts = entry.options or {}
+    opts: dict[str, Any] = dict(entry.options or {})
     general = opts.get("general", {}) or {}
     advanced = opts.get("advanced", {}) or {}
     coordinator.language = str(
