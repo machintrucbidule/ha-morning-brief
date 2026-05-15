@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from unittest.mock import AsyncMock, patch
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceRegistry
 
 from custom_components.morning_brief.providers.calendar import CalendarProvider
 
@@ -26,7 +26,9 @@ async def test_returns_first_event_summary(hass: HomeAssistant) -> None:
         {"summary": "Dinner", "start": "2026-05-17T19:00:00", "end": "2026-05-17T21:00:00"},
     ]
     with patch.object(
-        hass.services, "async_call", AsyncMock(return_value=_events_response(events))
+        ServiceRegistry,
+        "async_call",
+        AsyncMock(return_value=_events_response(events)),
     ):
         result = await CalendarProvider(
             hass, {"calendar_entity_id": ENTITY}
@@ -41,7 +43,9 @@ async def test_max_events_limits_returned_count(hass: HomeAssistant) -> None:
         for i in range(5)
     ]
     with patch.object(
-        hass.services, "async_call", AsyncMock(return_value=_events_response(events))
+        ServiceRegistry,
+        "async_call",
+        AsyncMock(return_value=_events_response(events)),
     ):
         result = await CalendarProvider(
             hass, {"calendar_entity_id": ENTITY, "max_events": 3}
@@ -60,7 +64,9 @@ async def test_summary_regex_filters(hass: HomeAssistant) -> None:
         {"summary": "Vet checkup", "start": "2026-05-18T09:00:00", "end": "2026-05-18T10:00:00"},
     ]
     with patch.object(
-        hass.services, "async_call", AsyncMock(return_value=_events_response(events))
+        ServiceRegistry,
+        "async_call",
+        AsyncMock(return_value=_events_response(events)),
     ):
         result = await CalendarProvider(
             hass,
@@ -73,7 +79,9 @@ async def test_summary_regex_filters(hass: HomeAssistant) -> None:
 
 async def test_no_events_returns_stale(hass: HomeAssistant) -> None:
     with patch.object(
-        hass.services, "async_call", AsyncMock(return_value=_events_response([]))
+        ServiceRegistry,
+        "async_call",
+        AsyncMock(return_value=_events_response([])),
     ):
         result = await CalendarProvider(
             hass, {"calendar_entity_id": ENTITY}
@@ -84,7 +92,9 @@ async def test_no_events_returns_stale(hass: HomeAssistant) -> None:
 
 async def test_service_failure_returns_stale_no_crash(hass: HomeAssistant) -> None:
     with patch.object(
-        hass.services, "async_call", AsyncMock(side_effect=RuntimeError("boom"))
+        ServiceRegistry,
+        "async_call",
+        AsyncMock(side_effect=RuntimeError("boom")),
     ):
         result = await CalendarProvider(
             hass, {"calendar_entity_id": ENTITY}
