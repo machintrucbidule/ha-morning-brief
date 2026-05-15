@@ -73,14 +73,14 @@ Live checklist for the integration repo. Updated continuously. Phases mirror Sec
 - [x] prompts/morning_v1.txt, evening_v1.txt, weekly_v1.txt
 
 ## Phase 7 — Reports & canonical JSON
-- [ ] reports/base.py + __init__.py
-- [ ] reports/canonical.py
-- [ ] reports/morning.py
-- [ ] reports/evening.py
-- [ ] reports/weekly.py
-- [ ] rendering/markdown.py
-- [ ] rendering/notification_short.py
-- [ ] Tests: morning, evening, weekly e2e
+- [x] reports/base.py + __init__.py (registry + factory)
+- [x] reports/canonical.py
+- [x] reports/morning.py
+- [x] reports/evening.py
+- [x] reports/weekly.py
+- [x] rendering/markdown.py
+- [x] rendering/notification_short.py
+- [x] Tests: canonical, morning, evening, weekly
 
 ## Phase 8 — Config flow & subentries
 - [ ] config_flow.py

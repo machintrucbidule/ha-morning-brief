@@ -185,7 +185,15 @@ Python custom_component for Home Assistant. Generates configurable AI-enriched d
   - [x] ai/prompt_template.py — Jinja2 loader with StrictUndefined
   - [x] ai/__init__.py — AI_PROVIDERS registry + create_ai_provider factory
   - [x] prompts/{morning,evening,weekly}_v1.txt — English templates with {{ language }} directive
-- [ ] Phase 7: Reports & canonical JSON
+- [x] Phase 7: Reports & canonical JSON
+  - [x] reports/base.py — ReportBuilder ABC + shared `_resolve_field` pipeline (rationale: shared with formatters)
+  - [x] reports/canonical.py — `build_canonical_json` (Sections 14.5 + 15)
+  - [x] reports/morning.py — flagship, full AI pipeline + degraded fallback
+  - [x] reports/evening.py — composes on morning, forces cal_offset=0
+  - [x] reports/weekly.py — ISO-week aggregation per `weekly_aggregation` (D13, G15)
+  - [x] reports/__init__.py — REPORTS registry + create_report
+  - [x] rendering/markdown.py — Section 28 fallback view
+  - [x] rendering/notification_short.py — Section 27 3-line mobile body
 - [ ] Phase 8: Config flow & subentries
 - [ ] Phase 9: Services, entities, events
 - [ ] Phase 10: Frontend card
