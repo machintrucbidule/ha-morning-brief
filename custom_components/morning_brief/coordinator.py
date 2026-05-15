@@ -79,8 +79,17 @@ class MorningBriefCoordinator(DataUpdateCoordinator[dict[str, Any] | None]):
         return self.entry.entry_id
 
     async def _async_update_data(self) -> dict[str, Any] | None:
-        """Triggers route through here. Always produce a fresh brief."""
-        return await self.async_generate_brief(force=False)
+        """Load the last persisted brief.
+
+        The DataUpdateCoordinator's `first_refresh` calls this — we do NOT
+        auto-generate at setup time (D7: generation is event-driven via
+        triggers, services, and button presses). When something wants to
+        generate, it calls `async_generate_brief` directly.
+        """
+        latest = await self.store.get_latest()
+        if latest is None:
+            return None
+        return latest.get("canonical_json")
 
     async def async_generate_brief(self, *, force: bool = False) -> dict[str, Any] | None:
         """Run the full pipeline and persist+notify the result.
