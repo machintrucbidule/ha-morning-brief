@@ -104,17 +104,20 @@ Live checklist for the integration repo. Updated continuously. Phases mirror Sec
 (See morning-brief-card/PROGRESS.md.)
 
 ## Phase 11 — Docs & blueprints & examples
-- [ ] README.md
-- [ ] docs/architecture.md
-- [ ] docs/providers.md
-- [ ] docs/triggers.md
-- [ ] docs/ai_providers.md
-- [ ] docs/multilanguage.md
-- [ ] docs/examples/*.yaml
-- [ ] blueprints/automation/morning_brief/trigger_on_wake.yaml
-- [ ] blueprints/automation/morning_brief/trigger_on_schedule.yaml
-- [ ] CHANGELOG.md
-- [ ] info.md, hacs.json finalize
+- [x] README.md (20 sections per Section 31)
+- [x] docs/architecture.md
+- [x] docs/providers.md
+- [x] docs/triggers.md
+- [x] docs/ai_providers.md
+- [x] docs/multilanguage.md
+- [x] docs/examples/lovelace_basic.yaml
+- [x] docs/examples/lovelace_compact.yaml
+- [x] docs/examples/automation_level3_external_trigger.yaml
+- [x] docs/examples/full_config_export.yaml
+- [x] blueprints/automation/morning_brief/trigger_on_wake.yaml
+- [x] blueprints/automation/morning_brief/trigger_on_schedule.yaml
+- [x] CHANGELOG.md
+- [x] info.md
 
 ## Phase 12 — Polish & release prep
 - [ ] Full test suite green

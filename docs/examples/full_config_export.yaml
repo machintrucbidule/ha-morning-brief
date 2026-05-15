@@ -1,2 +1,51 @@
-# Stub — filled in Phase 11.
-# An example of an exported instance config (informational; storage is via HA Store).
+# Diagnostic / template export of a full morning-brief config.
+# This is a non-runnable reference: copy values into the UI flow when
+# rebuilding an instance after a wipe.
+report_type: morning
+language: fr
+logical_day:
+  strategy: sleep_sensor
+  sensor: binary_sensor.sleep_tracker
+  awake_state: "off"
+  hard_fallback_hour: 11
+trigger:
+  level: schedule
+  time: "06:30"
+  days_of_week: [mon, tue, wed, thu, fri, sat, sun]
+ai_provider:
+  type: anthropic_direct
+  model: claude-haiku-4-5-20251001
+  api_key: !secret anthropic_api_key
+persistence:
+  history_cap: 30
+fields:
+  - label: Conso élec.
+    category: energy
+    provider:
+      type: cumulative
+      entity: sensor.energy_total_kwh
+    comparisons: [yesterday, same_weekday_last_week, rolling_avg]
+    rolling_avg_window: 14
+    anomaly:
+      mode: z_score
+      sigmas: 2.0
+    visible_in: [morning, weekly]
+    weekly_aggregation: sum
+  - label: Température bureau
+    category: comfort
+    provider:
+      type: instantaneous
+      entity: sensor.office_temperature
+    comparisons: [yesterday, rolling_avg]
+    rolling_avg_window: 7
+    visible_in: [morning]
+    weekly_aggregation: mean
+categories:
+  - key: energy
+    label: Énergie
+    icon: mdi:lightning-bolt
+    color: "#fbbf24"
+  - key: comfort
+    label: Confort
+    icon: mdi:home-thermometer
+    color: "#60a5fa"

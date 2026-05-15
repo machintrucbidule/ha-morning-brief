@@ -1,7 +1,74 @@
-# Stub — filled in Phase 11.
-# See MORNING_BRIEF_SPEC.md Section 16.4 (Blueprints) and Section 33.
 blueprint:
-  name: Morning Brief — trigger on wake
-  description: Stub. Will fire the morning_brief.generate service when the configured sleep sensor transitions to awake.
+  name: Morning Brief — Trigger on wake (L2)
+  description: >-
+    Generates a morning-brief shortly after the user is detected as awake.
+    Combines a primary "wake" sensor with optional opt-out sensors that, if
+    they fire first, cancel the delayed generation. A hard fallback time
+    guarantees the brief is produced even if no wake signal arrives.
   domain: automation
-  input: {}
+  input:
+    morning_brief_entry_id:
+      name: Morning-brief instance
+      selector:
+        config_entry:
+          integration: morning_brief
+    wake_sensor:
+      name: Wake-up trigger sensor
+      description: Binary sensor whose ON transition indicates the user woke up.
+      selector:
+        entity:
+          domain: binary_sensor
+    wake_delay_minutes:
+      name: Post-wake delay (minutes)
+      description: How long to wait after wake before generating.
+      default: 15
+      selector:
+        number:
+          min: 0
+          max: 180
+          unit_of_measurement: min
+    opt_out_sensors:
+      name: Opt-out sensors
+      description: >-
+        If any of these sensors changes between the wake trigger and the
+        delayed generation, the generation is skipped (assumed false alarm).
+      default: []
+      selector:
+        entity:
+          multiple: true
+    fallback_time:
+      name: Hard fallback time
+      description: Latest time at which the brief will be generated no matter what.
+      default: "09:00:00"
+      selector:
+        time:
+
+mode: restart
+trigger:
+  - platform: state
+    entity_id: !input wake_sensor
+    to: "on"
+    id: wake
+  - platform: time
+    at: !input fallback_time
+    id: fallback
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: wake
+        sequence:
+          - delay:
+              minutes: !input wake_delay_minutes
+          - service: morning_brief.generate
+            data:
+              entry_id: !input morning_brief_entry_id
+              force: false
+      - conditions:
+          - condition: trigger
+            id: fallback
+        sequence:
+          - service: morning_brief.generate
+            data:
+              entry_id: !input morning_brief_entry_id
+              force: false

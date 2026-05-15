@@ -1,10 +1,20 @@
-# Stub — filled in Phase 11.
-# Example automation for trigger level 3 (external) — user fires the service themselves.
-alias: Generate morning brief (custom)
+# Level-3 external trigger example.
+# Use this when neither the schedule (L1) nor the sensor-based trigger (L2)
+# blueprints fit your case. Here we generate the morning brief 10 minutes
+# after the bathroom light first turns on between 05:00 and 10:00.
+alias: Morning brief — external trigger (bathroom light)
+mode: single
 trigger:
-  - platform: time
-    at: "07:30:00"
+  - platform: state
+    entity_id: light.bathroom
+    to: "on"
+condition:
+  - condition: time
+    after: "05:00:00"
+    before: "10:00:00"
 action:
+  - delay: "00:10:00"
   - service: morning_brief.generate
     data:
-      instance_id: REPLACE_WITH_YOUR_INSTANCE_ID
+      entry_id: !secret morning_brief_morning_entry_id
+      force: false

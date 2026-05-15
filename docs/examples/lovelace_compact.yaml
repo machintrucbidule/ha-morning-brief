@@ -1,4 +1,6 @@
-# Stub — filled in Phase 11.
+# Lovelace example — compact morning-brief card.
+# Hides sparklines, comparisons, AI insights, footer. Useful in a sidebar.
 type: custom:morning-brief-card
-entity: sensor.morning_brief_default
+entity: sensor.morning_brief_morning
 compact_mode: true
+show_history_nav: false

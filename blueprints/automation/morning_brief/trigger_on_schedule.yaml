@@ -1,6 +1,53 @@
-# Stub — filled in Phase 11.
 blueprint:
-  name: Morning Brief — trigger on schedule
-  description: Stub. Will fire the morning_brief.generate service at a configurable time on configurable days.
+  name: Morning Brief — Trigger on schedule (L1)
+  description: >-
+    Generates a morning-brief on a fixed daily schedule.
+    Use this as the simplest possible trigger setup.
   domain: automation
-  input: {}
+  input:
+    morning_brief_entry_id:
+      name: Morning-brief instance
+      description: The entry_id of the morning-brief instance to generate.
+      selector:
+        config_entry:
+          integration: morning_brief
+    schedule_time:
+      name: Generation time
+      description: Local time at which to generate the brief.
+      default: "06:30:00"
+      selector:
+        time:
+    days_of_week:
+      name: Days of week
+      description: Days on which the brief is generated.
+      default: [mon, tue, wed, thu, fri, sat, sun]
+      selector:
+        select:
+          multiple: true
+          options:
+            - mon
+            - tue
+            - wed
+            - thu
+            - fri
+            - sat
+            - sun
+    force:
+      name: Force regeneration
+      description: If true, ignore throttle and overwrite the existing brief for today.
+      default: false
+      selector:
+        boolean:
+
+mode: single
+trigger:
+  - platform: time
+    at: !input schedule_time
+condition:
+  - condition: time
+    weekday: !input days_of_week
+action:
+  - service: morning_brief.generate
+    data:
+      entry_id: !input morning_brief_entry_id
+      force: !input force
