@@ -152,7 +152,17 @@ Python custom_component for Home Assistant. Generates configurable AI-enriched d
   - [x] history/event_detector.py — filter unavailable/unknown + epsilon dedup + debounce (G1, D23)
   - [x] history/hybrid.py — LTS-first, short-term gap-fill bounded by recorder retention (G7), D11 status enum
   - [x] history/__init__.py — public exports
-- [ ] Phase 3: Providers
+- [x] Phase 3: Providers
+  - [x] providers/base.py — FieldProvider ABC
+  - [x] providers/__init__.py — registry + create_provider/detect_provider factory
+  - [x] providers/instantaneous.py + tests
+  - [x] providers/cumulative.py + tests
+  - [x] providers/manual.py + tests
+  - [x] providers/state.py + tests
+  - [x] providers/event_based.py + tests
+  - [x] providers/duration.py + tests
+  - [x] providers/calendar.py + tests
+  - [x] providers/weather.py + tests (rationale: composite + dual-format)
 - [ ] Phase 4: Logical day & triggers
 - [ ] Phase 5: Availability gate & comparisons & anomaly
 - [ ] Phase 6: AI layer

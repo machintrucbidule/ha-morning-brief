@@ -36,15 +36,15 @@ Live checklist for the integration repo. Updated continuously. Phases mirror Sec
 - [x] Tests: LTS only, short-term only, mix, gaps, conflicts
 
 ## Phase 3 — Providers
-- [ ] providers/base.py + providers/__init__.py (registry + factory)
-- [ ] providers/instantaneous.py + tests
-- [ ] providers/cumulative.py + tests
-- [ ] providers/manual.py + tests
-- [ ] providers/state.py + tests
-- [ ] providers/event_based.py + tests
-- [ ] providers/duration.py + tests
-- [ ] providers/calendar.py + tests
-- [ ] providers/weather.py + tests
+- [x] providers/base.py + providers/__init__.py (registry + factory)
+- [x] providers/instantaneous.py + tests
+- [x] providers/cumulative.py + tests
+- [x] providers/manual.py + tests
+- [x] providers/state.py + tests
+- [x] providers/event_based.py + tests
+- [x] providers/duration.py + tests
+- [x] providers/calendar.py + tests
+- [x] providers/weather.py + tests
 
 ## Phase 4 — Logical day & triggers
 - [ ] logical_day/base.py + __init__.py
