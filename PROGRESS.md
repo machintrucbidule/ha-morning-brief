@@ -56,9 +56,10 @@ Live checklist for the integration repo. Updated continuously. Phases mirror Sec
 - [x] Tests for triggers (mocked HA scheduler)
 
 ## Phase 5 — Availability gate & comparisons & anomaly
-- [ ] compute/availability.py + tests
-- [ ] compute/comparisons.py (all 8 types) + tests
-- [ ] compute/anomaly.py (3 modes) + tests
+- [x] compute/availability.py + tests
+- [x] compute/comparisons.py (all 8 types) + tests
+- [x] compute/anomaly.py (3 modes) + tests
+- [x] compute/__init__.py public exports
 
 ## Phase 6 — AI layer
 - [ ] ai/base.py

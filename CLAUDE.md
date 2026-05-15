@@ -170,7 +170,11 @@ Python custom_component for Home Assistant. Generates configurable AI-enriched d
   - [x] triggers/schedule.py — cron-style time trigger
   - [x] triggers/sensor_based.py — state-machine: trigger→delay→optout-shortcut, daily fallback (rationale: 3 listeners + 5-state machine kept cohesive)
   - [x] triggers/__init__.py
-- [ ] Phase 5: Availability gate & comparisons & anomaly
+- [x] Phase 5: Availability gate & comparisons & anomaly
+  - [x] compute/availability.py — apply_gate (D5, G5)
+  - [x] compute/comparisons.py — 8 V1 types + dispatcher + interpretation (D14, rationale)
+  - [x] compute/anomaly.py — 3 detection modes + dispatcher (D15)
+  - [x] compute/__init__.py
 - [ ] Phase 6: AI layer
 - [ ] Phase 7: Reports & canonical JSON
 - [ ] Phase 8: Config flow & subentries
