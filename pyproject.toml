@@ -14,3 +14,25 @@ python_version = "3.12"
 strict = true
 warn_unused_ignores = true
 warn_redundant_casts = true
+
+[tool.coverage.run]
+source = ["custom_components/morning_brief"]
+branch = false
+omit = [
+  "custom_components/morning_brief/brand/*",
+  "*/__init__.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+precision = 1
+exclude_lines = [
+  "pragma: no cover",
+  "raise NotImplementedError",
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.:",
+]
+# R11 + Section 30.1 — global floor; per-module targets (60-90%) tracked
+# in the spec, verified by reading the per-module column in the report.
+fail_under = 70
