@@ -17,6 +17,7 @@ from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
 
+from ..compute import evaluate_comparisons
 from ..const import (
     AI_STATUS_OK,
     COMPARISON_SAME_WEEK_LAST_YEAR,
@@ -170,8 +171,6 @@ class WeeklyReport(ReportBuilder):
             for c in field_config.get("comparisons", [])
             if c.get("type") in {COMPARISON_TARGET_VALUE, COMPARISON_SAME_WEEK_LAST_YEAR}
         ]
-        from ..compute import evaluate_comparisons  # local import — small surface
-
         comparisons = await evaluate_comparisons(
             self.hass,
             provider,
