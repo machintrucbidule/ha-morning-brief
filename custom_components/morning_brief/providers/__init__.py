@@ -8,6 +8,8 @@ config flow to suggest a default provider type for a chosen entity.
 
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.core import HomeAssistant
 
 from ..const import (
@@ -44,7 +46,7 @@ PROVIDERS: dict[str, type[FieldProvider]] = {
 
 
 def create_provider(
-    hass: HomeAssistant, provider_type: str, config: dict
+    hass: HomeAssistant, provider_type: str, config: dict[str, Any]
 ) -> FieldProvider:
     """Instantiate the provider class for ``provider_type`` and validate config.
 

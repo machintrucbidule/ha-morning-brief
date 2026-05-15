@@ -82,7 +82,8 @@ class DurationProvider(FieldProvider):
         if self.source_type == _SOURCE_SENSOR_LAST_CHANGED:
             return state.last_changed
         if self.source_type == _SOURCE_SENSOR_ATTR_DT:
-            attr = state.attributes.get(self.attribute_name)
+            attr_name = self.attribute_name or ""
+            attr = state.attributes.get(attr_name)
             return _parse_dt(attr)
         return None
 
