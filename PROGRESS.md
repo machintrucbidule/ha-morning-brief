@@ -47,13 +47,13 @@ Live checklist for the integration repo. Updated continuously. Phases mirror Sec
 - [x] providers/weather.py + tests
 
 ## Phase 4 — Logical day & triggers
-- [ ] logical_day/base.py + __init__.py
-- [ ] logical_day/fixed_cutoff.py + tests
-- [ ] logical_day/sleep_sensor.py + tests
-- [ ] logical_day/manual.py + tests
-- [ ] triggers/schedule.py
-- [ ] triggers/sensor_based.py
-- [ ] Tests for triggers (mocked HA scheduler)
+- [x] logical_day/base.py + __init__.py (registry + factory)
+- [x] logical_day/fixed_cutoff.py + tests
+- [x] logical_day/sleep_sensor.py + tests
+- [x] logical_day/manual.py + tests
+- [x] triggers/schedule.py
+- [x] triggers/sensor_based.py
+- [x] Tests for triggers (mocked HA scheduler)
 
 ## Phase 5 — Availability gate & comparisons & anomaly
 - [ ] compute/availability.py + tests

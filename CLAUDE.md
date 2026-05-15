@@ -163,7 +163,13 @@ Python custom_component for Home Assistant. Generates configurable AI-enriched d
   - [x] providers/duration.py + tests
   - [x] providers/calendar.py + tests
   - [x] providers/weather.py + tests (rationale: composite + dual-format)
-- [ ] Phase 4: Logical day & triggers
+- [x] Phase 4: Logical day & triggers
+  - [x] logical_day/base.py — LogicalDayStrategy ABC
+  - [x] logical_day/{fixed_cutoff,sleep_sensor,manual}.py — 3 strategies (D6)
+  - [x] logical_day/__init__.py — STRATEGIES registry + create_strategy
+  - [x] triggers/schedule.py — cron-style time trigger
+  - [x] triggers/sensor_based.py — state-machine: trigger→delay→optout-shortcut, daily fallback (rationale: 3 listeners + 5-state machine kept cohesive)
+  - [x] triggers/__init__.py
 - [ ] Phase 5: Availability gate & comparisons & anomaly
 - [ ] Phase 6: AI layer
 - [ ] Phase 7: Reports & canonical JSON
