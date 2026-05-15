@@ -7,16 +7,19 @@ category_id slug is derived from the label.
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
 
 # See subentries/field/flow.py for the rationale on this defensive alias.
-_SubentryBase: type = getattr(
-    config_entries, "ConfigSubentryFlow", config_entries.ConfigFlow
-)
+if TYPE_CHECKING:
+    _SubentryBase = config_entries.ConfigFlow
+else:
+    _SubentryBase = getattr(
+        config_entries, "ConfigSubentryFlow", config_entries.ConfigFlow
+    )
 
 
 def _slugify(label: str) -> str:

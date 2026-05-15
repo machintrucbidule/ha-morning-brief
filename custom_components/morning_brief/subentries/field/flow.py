@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
@@ -30,10 +30,15 @@ from .schema import (
 
 # `ConfigSubentryFlow` is a recent HA API (≥ 2024.11). On older HA we fall
 # back to `ConfigFlow` so the package still imports — subentries won't be
-# operational on those versions but the integration still loads.
-_SubentryBase: type = getattr(
-    config_entries, "ConfigSubentryFlow", config_entries.ConfigFlow
-)
+# operational on those versions but the integration still loads. At
+# type-check time we pretend the base is always `ConfigFlow` so mypy
+# strict can resolve the inherited signatures.
+if TYPE_CHECKING:
+    _SubentryBase = config_entries.ConfigFlow
+else:
+    _SubentryBase = getattr(
+        config_entries, "ConfigSubentryFlow", config_entries.ConfigFlow
+    )
 
 _LOGGER = logging.getLogger(__name__)
 
