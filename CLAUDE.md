@@ -199,7 +199,13 @@ Python custom_component for Home Assistant. Generates configurable AI-enriched d
   - [x] options_flow/* — 8 sections + per-section schemas
   - [x] subentries/field/ (7 steps) + subentries/category/ (1 step)
   - [x] Translations populated EN+FR (133 keys, parity validated)
-- [ ] Phase 9: Services, entities, events
+- [x] Phase 9: Services, entities, events
+  - [x] coordinator.py — async_generate_brief / async_preview_brief, fires `morning_brief_generated` + `morning_brief_ai_failed`
+  - [x] services.py + services.yaml — 8 services (Section 18.2)
+  - [x] sensor.py — main + status sensors with D18/G13 truncation
+  - [x] button.py — generate + preview
+  - [x] __init__.py — full wiring (platforms forward + services register + subentry collection)
+  - [x] test_e2e_morning.py — config entry setup, generate, preview, get_last_brief, unload, truncation
 - [ ] Phase 10: Frontend card
 - [ ] Phase 11: Docs & blueprints & examples
 - [ ] Phase 12: Polish & release prep

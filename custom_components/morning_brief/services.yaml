@@ -1,1 +1,114 @@
-# Stub — Phase 9. See MORNING_BRIEF_SPEC.md Section 18.2 for the full service list.
+generate:
+  name: Generate brief
+  description: Generate a brief for an instance.
+  fields:
+    instance_id:
+      name: Instance
+      description: The morning_brief config entry to use.
+      required: true
+      selector:
+        config_entry:
+          integration: morning_brief
+    force:
+      name: Force regeneration
+      description: Generate even if the same logical_date is already in history.
+      required: false
+      default: false
+      selector:
+        boolean:
+
+preview:
+  name: Preview brief
+  description: Generate a brief WITHOUT persisting or notifying. Returns the JSON in the response.
+  fields:
+    instance_id:
+      name: Instance
+      description: The morning_brief config entry to use.
+      required: true
+      selector:
+        config_entry:
+          integration: morning_brief
+
+advance_day:
+  name: Advance logical day
+  description: For the "manual" logical_day strategy — advances the logical date.
+  fields:
+    instance_id:
+      name: Instance
+      description: The morning_brief config entry to use.
+      required: true
+      selector:
+        config_entry:
+          integration: morning_brief
+
+clear_history:
+  name: Clear history
+  description: Delete all stored briefs for an instance.
+  fields:
+    instance_id:
+      name: Instance
+      description: The morning_brief config entry to use.
+      required: true
+      selector:
+        config_entry:
+          integration: morning_brief
+
+test_ai_provider:
+  name: Test AI provider
+  description: Test the configured AI provider's credentials.
+  fields:
+    instance_id:
+      name: Instance
+      description: The morning_brief config entry to use.
+      required: true
+      selector:
+        config_entry:
+          integration: morning_brief
+
+get_last_brief:
+  name: Get last brief
+  description: Returns the most recent brief's canonical JSON. Used by the card to fetch full JSON when truncated.
+  fields:
+    instance_id:
+      name: Instance
+      description: The morning_brief config entry to use.
+      required: true
+      selector:
+        config_entry:
+          integration: morning_brief
+
+get_brief_by_uuid:
+  name: Get brief by UUID
+  description: Retrieves a specific past brief.
+  fields:
+    instance_id:
+      name: Instance
+      description: The morning_brief config entry to use.
+      required: true
+      selector:
+        config_entry:
+          integration: morning_brief
+    uuid:
+      name: UUID
+      description: The brief's UUID as stored.
+      required: true
+      selector:
+        text:
+
+reorder_fields:
+  name: Reorder fields
+  description: Set the display order for fields.
+  fields:
+    instance_id:
+      name: Instance
+      description: The morning_brief config entry to use.
+      required: true
+      selector:
+        config_entry:
+          integration: morning_brief
+    ordered_field_ids:
+      name: Ordered field IDs
+      description: Field IDs in the desired display order.
+      required: true
+      selector:
+        object:

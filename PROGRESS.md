@@ -93,11 +93,12 @@ Live checklist for the integration repo. Updated continuously. Phases mirror Sec
 - [x] Tests: config flow happy paths + validation errors
 
 ## Phase 9 — Services, entities, events
-- [ ] services.py + services.yaml
-- [ ] sensor.py
-- [ ] button.py
-- [ ] Event firing on completion
-- [ ] End-to-end test: tests/test_e2e_morning.py
+- [x] services.py + services.yaml (8 services)
+- [x] sensor.py (main + status, with truncation D18/G13)
+- [x] button.py (generate + preview)
+- [x] Coordinator generation pipeline + events (morning_brief_generated, morning_brief_ai_failed)
+- [x] __init__.py wiring (platforms + services + coordinator setup)
+- [x] End-to-end test: tests/test_e2e_morning.py
 
 ## Phase 10 — Frontend card
 (See morning-brief-card/PROGRESS.md.)
