@@ -62,14 +62,15 @@ Live checklist for the integration repo. Updated continuously. Phases mirror Sec
 - [x] compute/__init__.py public exports
 
 ## Phase 6 — AI layer
-- [ ] ai/base.py
-- [ ] ai/disabled.py
-- [ ] ai/retry.py + tests
-- [ ] ai/ha_ai_task.py + tests
-- [ ] ai/anthropic_direct.py + tests
-- [ ] ai/openai_direct.py + tests
-- [ ] ai/prompt_template.py + tests
-- [ ] prompts/morning_v1.txt, evening_v1.txt, weekly_v1.txt
+- [x] ai/base.py (AIProvider ABC)
+- [x] ai/disabled.py
+- [x] ai/retry.py + tests
+- [x] ai/ha_ai_task.py + tests
+- [x] ai/anthropic_direct.py + tests
+- [x] ai/openai_direct.py + tests
+- [x] ai/prompt_template.py + tests
+- [x] ai/__init__.py (registry + factory) + tests
+- [x] prompts/morning_v1.txt, evening_v1.txt, weekly_v1.txt
 
 ## Phase 7 — Reports & canonical JSON
 - [ ] reports/base.py + __init__.py

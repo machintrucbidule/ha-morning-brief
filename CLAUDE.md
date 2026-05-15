@@ -175,7 +175,16 @@ Python custom_component for Home Assistant. Generates configurable AI-enriched d
   - [x] compute/comparisons.py — 8 V1 types + dispatcher + interpretation (D14, rationale)
   - [x] compute/anomaly.py — 3 detection modes + dispatcher (D15)
   - [x] compute/__init__.py
-- [ ] Phase 6: AI layer
+- [x] Phase 6: AI layer
+  - [x] ai/base.py — AIProvider ABC
+  - [x] ai/disabled.py — empty-envelope degraded mode (D9)
+  - [x] ai/ha_ai_task.py — wraps ai_task.* HA entities
+  - [x] ai/anthropic_direct.py — direct api.anthropic.com via aiohttp
+  - [x] ai/openai_direct.py — direct api.openai.com via aiohttp
+  - [x] ai/retry.py — 3-attempt exponential back-off + JSON validation (D8, G14)
+  - [x] ai/prompt_template.py — Jinja2 loader with StrictUndefined
+  - [x] ai/__init__.py — AI_PROVIDERS registry + create_ai_provider factory
+  - [x] prompts/{morning,evening,weekly}_v1.txt — English templates with {{ language }} directive
 - [ ] Phase 7: Reports & canonical JSON
 - [ ] Phase 8: Config flow & subentries
 - [ ] Phase 9: Services, entities, events
