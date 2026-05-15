@@ -155,7 +155,7 @@ class MorningReport(ReportBuilder):
             ai_envelope=None,
             ai_provider=None,
         )
-        return template.render(
+        rendered: str = template.render(
             language=language,
             data=partial,
             data_json=json.dumps(partial, default=str, ensure_ascii=False),
@@ -166,3 +166,4 @@ class MorningReport(ReportBuilder):
                 ensure_ascii=False,
             ),
         )
+        return rendered

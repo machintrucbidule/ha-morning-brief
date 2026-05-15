@@ -223,7 +223,7 @@ class WeeklyReport(ReportBuilder):
             ai_provider=None,
             ai_status=AI_STATUS_OK,
         )
-        return template.render(
+        rendered: str = template.render(
             language=language,
             data=partial,
             data_json=json.dumps(partial, default=str, ensure_ascii=False),
@@ -234,3 +234,4 @@ class WeeklyReport(ReportBuilder):
                 ensure_ascii=False,
             ),
         )
+        return rendered
