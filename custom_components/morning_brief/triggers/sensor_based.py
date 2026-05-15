@@ -27,6 +27,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.event import (
+    EventStateChangedData,
     async_call_later,
     async_track_state_change_event,
     async_track_time_change,
@@ -122,7 +123,7 @@ class SensorBasedTrigger:
             self._cancel_delay = None
 
     @callback
-    def _on_trigger_event(self, event: Event) -> None:
+    def _on_trigger_event(self, event: Event[EventStateChangedData]) -> None:
         """Trigger sensor state change → maybe start the delay."""
         new_state = event.data.get("new_state")
         if new_state is None or new_state.state != self.trigger_to_state:
@@ -135,7 +136,7 @@ class SensorBasedTrigger:
         )
 
     @callback
-    def _on_optout_event(self, event: Event) -> None:
+    def _on_optout_event(self, event: Event[EventStateChangedData]) -> None:
         """Any opt-out sensor change during the delay → fire immediately."""
         if self._cancel_delay is None:
             return
