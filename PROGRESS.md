@@ -120,8 +120,13 @@ Live checklist for the integration repo. Updated continuously. Phases mirror Sec
 - [x] info.md
 
 ## Phase 12 — Polish & release prep
-- [ ] Full test suite green
-- [ ] mypy --strict clean
-- [ ] ruff check clean
-- [ ] HACS validation passes
-- [ ] Tag v1.0.0
+- [x] Full test suite green (299 passed, 0 skipped on CI)
+- [x] mypy --strict clean (CI)
+- [x] ruff check clean (CI)
+- [x] HACS validation passes (8/8)
+- [x] Coverage report enabled in CI (pytest --cov, ≥70% global floor)
+- [x] preview.png placeholder generated in docs/img/
+- [x] MORNING_BRIEF_SPEC.md retained in this repo; removed from card repo per release decision
+- [x] CLAUDE.md + PROGRESS.md updated to reflect v1.0.0-rc.1 state
+- [x] Tag v1.0.0-rc.1 (release candidate — final v1.0.0 pending manual HA validation per Section 37)
+- [ ] Tag v1.0.0 (after user validates: live HA install, AI degraded mode, real screenshot)

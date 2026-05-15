@@ -6,8 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0-rc.1] — 2026-05-15
+
+First release candidate. All 12 phases of the build plan complete. Final
+`v1.0.0` is gated on a manual end-to-end test against a live HA instance
+(per Section 37 acceptance criteria) and replacement of the placeholder
+brand icons and preview screenshot.
+
 ### Added
 
+- Phase 12 — Polish & release prep: pytest-cov + per-module coverage report
+  in CI (≥70% global floor), `docs/img/preview.png` placeholder, end-of-
+  session ritual fixes (refreshed Open questions / blockers, restored
+  chronological session-log order, fixed two factual errors in Phase 11
+  docs: `claude-sonnet-4-7` → `claude-sonnet-4-6`, `instance_id` →
+  `entry_id`).
 - Initial repo scaffolding (Phase 1).
 - Phase 1 — Foundation: manifest, const, types, exceptions, translations skeleton, coordinator skeleton, FIFO store, init/unload/remove.
 - Phase 2 — History layer: LTS daily wrapper, short-term aggregator, event detector with debounce/dedup, hybrid orchestrator with recorder-retention awareness, D11 status enum.

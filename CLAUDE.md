@@ -208,19 +208,24 @@ Python custom_component for Home Assistant. Generates configurable AI-enriched d
   - [x] test_e2e_morning.py — config entry setup, generate, preview, get_last_brief, unload, truncation
 - [x] Phase 10: Frontend card (lives in `morning-brief-card`)
 - [x] Phase 11: Docs & blueprints & examples
-- [ ] Phase 12: Polish & release prep
+- [x] Phase 12: Polish & release prep (tagged v1.0.0-rc.1 pending live HA test)
 
-## Open questions / blockers
+## Open questions / blockers (post-v1.0.0-rc.1 — these gate the v1.0.0 final tag)
 
-- **Brand icons are still placeholders.** `custom_components/morning_brief/brand/{icon,dark_icon,icon@2x,dark_icon@2x}.png` are fully-transparent 256/512 RGBA PNGs. User to replace with real artwork before v1.0.0 (Phase 12). HACS Validate accepts the placeholders.
-- **`docs/img/preview.png` is a placeholder.** Referenced from README — needs a real screenshot of the card rendering a sample brief, captured during Phase 12 against a live HA.
-- **No manual end-to-end test against a real running HA.** All 299 tests are pytest-homeassistant-custom-component-based with mocked recorder/AI. Phase 12 should include a sanity install via HACS into a real HA instance to verify config_flow UX, subentry flow, service responses, and the `_truncated` fallback on a real >16 KB brief.
-- **`MORNING_BRIEF_SPEC.md` is committed (136 KB) at the repo root.** It's nice for offline reference but bloats the HACS repo. Decision to keep or drop before v1.0.0 — currently kept.
+- **Manual end-to-end test on a real HA instance** (Section 37 acceptance criterion). User must: install both repos via HACS into a real HA, create a morning instance, add 2 categories + 5 fields across provider types, configure a schedule trigger, generate, confirm notification fires, confirm the card renders correctly, exercise the ← → history navigation. Currently blocked by lack of HA live access in the build session.
+- **Manual AI degraded mode verification** (Section 37). Disable the AI provider on a live instance and verify the brief is still produced cleanly with empty AI sections.
+- **Brand icons remain placeholders.** `custom_components/morning_brief/brand/{icon,dark_icon,icon@2x,dark_icon@2x}.png` are fully-transparent PNGs. User to replace with real artwork before v1.0.0 final.
+- **`docs/img/preview.png` is a grey labeled placeholder.** Real screenshots from a live HA render to come before v1.0.0 final (both repos).
 
-CI status on `machintrucbidule/ha-morning-brief` (after Phase 11 push `e413c7b`):
-- ✅ Tests (pytest, 299 passed, 0 skipped — full integration test suite)
+CI status on `machintrucbidule/ha-morning-brief` (after Phase 12 coverage CI push):
+- ✅ Tests (pytest --cov, 299 passed, 0 skipped, ≥ 70% global floor)
 - ✅ Lint (ruff + mypy --strict)
 - ✅ HACS Validate (8/8 checks, brands satisfied via placeholders)
+
+Decisions taken at v1.0.0-rc.1 cut (user-approved this session):
+- Tag scheme: `v1.0.0-rc.1` first (not `v1.0.0`) — release-candidate until the live HA tests above pass.
+- `MORNING_BRIEF_SPEC.md` stays committed in the integration repo (this one) for traceability; removed from the card repo to keep its HACS payload lean.
+- Placeholder preview.png chosen over removing the README image reference, so the README layout matches the post-screenshot state.
 
 ## Session log
 
