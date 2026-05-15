@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 
@@ -12,7 +14,7 @@ def _subentry_order_schema(entry: ConfigEntry, subentry_type: str) -> vol.Schema
     items = (
         list(subentries.values()) if isinstance(subentries, dict) else list(subentries)
     )
-    fields: dict = {}
+    fields: dict[Any, Any] = {}
     for sub in items:
         if getattr(sub, "subentry_type", None) != subentry_type:
             continue

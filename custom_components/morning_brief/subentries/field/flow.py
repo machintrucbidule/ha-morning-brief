@@ -16,7 +16,7 @@ import logging
 from typing import Any
 
 from homeassistant import config_entries
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.config_entries import ConfigFlowResult
 
 from .schema import (
     anomaly_schema,
@@ -62,7 +62,7 @@ class FieldSubentryFlow(_SubentryBase):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Step 1 — identity (entity_id + provider_type)."""
         if user_input is not None:
             self._draft.update(user_input)
@@ -73,7 +73,7 @@ class FieldSubentryFlow(_SubentryBase):
 
     async def async_step_provider_params(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Step 2 — provider-specific params."""
         if user_input is not None:
             self._draft["provider_config"] = user_input
@@ -87,7 +87,7 @@ class FieldSubentryFlow(_SubentryBase):
 
     async def async_step_display(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Step 3 — label / icon / category / unit / direction_preference."""
         category_ids = _category_ids(self._get_entry())
         if user_input is not None:
@@ -100,7 +100,7 @@ class FieldSubentryFlow(_SubentryBase):
 
     async def async_step_comparisons(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Step 4 — comparisons (which + window_days + target)."""
         if user_input is not None:
             enabled = list(user_input.get("enabled_comparisons", []))
@@ -123,7 +123,7 @@ class FieldSubentryFlow(_SubentryBase):
 
     async def async_step_anomaly(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Step 5 — anomaly detection mode + params."""
         if user_input is not None:
             mode = str(user_input.get("mode", "none"))
@@ -148,7 +148,7 @@ class FieldSubentryFlow(_SubentryBase):
 
     async def async_step_visibility(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Step 6 — visible_in + weekly_aggregation + AI policy."""
         if user_input is not None:
             self._draft.update(user_input)
@@ -159,7 +159,7 @@ class FieldSubentryFlow(_SubentryBase):
 
     async def async_step_gate(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Step 7 — optional availability gate, then finalise."""
         if user_input is not None:
             gate_eid = str(user_input.get("gate_entity_id") or "")

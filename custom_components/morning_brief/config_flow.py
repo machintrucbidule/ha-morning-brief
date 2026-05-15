@@ -26,7 +26,7 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.config_entries import ConfigFlowResult
 
 from .const import (
     AI_PROVIDER_ANTHROPIC_DIRECT,
@@ -161,7 +161,7 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     # Step 1 — Report type
     # ------------------------------------------------------------------- #
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Initial step: choose report_type."""
         if user_input is not None:
             self._draft["report_type"] = user_input["report_type"]
@@ -179,7 +179,7 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_name_lang(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         if user_input is not None:
             self._draft["instance_name"] = user_input["instance_name"]
             self._draft["language"] = user_input["language"]
@@ -205,7 +205,7 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_logical_day(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         if user_input is not None and "strategy" in user_input:
             strategy = user_input["strategy"]
             # On the second submit, validate the strategy-specific params.
@@ -257,7 +257,7 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_trigger(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         if user_input is not None and "trigger_level" in user_input:
             level = user_input["trigger_level"]
             params = {k: v for k, v in user_input.items() if k != "trigger_level"}
@@ -291,7 +291,7 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_ai(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         if user_input is not None and "ai_provider_type" in user_input:
             ptype = user_input["ai_provider_type"]
             cfg: dict[str, Any] = {k: v for k, v in user_input.items() if k != "ai_provider_type"}
@@ -330,7 +330,7 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_copy_from(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         existing = [
             entry.entry_id for entry in self.hass.config_entries.async_entries(DOMAIN)
         ]

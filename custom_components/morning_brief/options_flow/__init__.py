@@ -16,7 +16,7 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.config_entries import ConfigFlowResult
 
 from ..const import (
     DEFAULT_RETENTION,
@@ -61,7 +61,7 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Show the main menu with all available sections."""
         sections = list(_MENU_SECTIONS_ALWAYS)
         if self._is_morning():
@@ -74,7 +74,7 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_general(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         if user_input is not None:
             return self._save_section("general", user_input)
         return self.async_show_form(
@@ -88,7 +88,7 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_logical_day(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         if user_input is not None:
             return self._save_section("logical_day", user_input)
         return self.async_show_form(
@@ -102,7 +102,7 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_trigger(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         if user_input is not None:
             return self._save_section("trigger", user_input)
         return self.async_show_form(
@@ -116,7 +116,7 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_notification(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         if user_input is not None:
             return self._save_section("notification", user_input)
         return self.async_show_form(
@@ -130,7 +130,7 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_persistence(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         if user_input is not None:
             retention = int(user_input.get("retention", DEFAULT_RETENTION))
             retention = max(MIN_RETENTION, min(MAX_RETENTION, retention))
@@ -147,7 +147,7 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_reorder_fields(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         # Reorder is a Section 22 numeric-order form. The actual write to
         # subentries happens in Phase 9 via the reorder_fields service.
         if user_input is not None:
@@ -159,7 +159,7 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_reorder_categories(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         if user_input is not None:
             return self._save_section("reorder_categories", user_input)
         return self.async_show_form(
@@ -173,7 +173,7 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_advanced(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         if user_input is not None:
             return self._save_section("advanced", user_input)
         return self.async_show_form(
@@ -185,7 +185,7 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
     # Shared save logic
     # ------------------------------------------------------------------ #
 
-    def _save_section(self, section: str, payload: dict[str, Any]) -> FlowResult:
+    def _save_section(self, section: str, payload: dict[str, Any]) -> ConfigFlowResult:
         """Merge ``payload`` into the entry's options under ``section``."""
         opts = dict(self._current_options)
         opts[section] = payload

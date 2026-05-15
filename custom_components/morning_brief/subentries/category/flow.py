@@ -11,7 +11,7 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.config_entries import ConfigFlowResult
 
 # See subentries/field/flow.py for the rationale on this defensive alias.
 _SubentryBase: type = getattr(
@@ -49,7 +49,7 @@ class CategorySubentryFlow(_SubentryBase):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Show the form; on submit, persist the new subentry."""
         if user_input is not None:
             label = str(user_input["label"])
