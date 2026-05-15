@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0-rc.2] — 2026-05-15
+
+### Fixed
+
+- **Options flow 500 error on HA ≥ 2024.12** — `OptionsFlow.config_entry`
+  became a read-only property; our `__init__` was still trying to assign
+  it, raising `AttributeError`. Removed the `__init__` and switched to
+  the parameterless constructor pattern HA now expects. Discovered during
+  the first live-HA install of v1.0.0-rc.1.
+- **`manifest.json` version mismatch** — was still `0.0.1`, preventing
+  HACS from detecting updates. Bumped to `1.0.0rc2` (PEP 440 form
+  matching the git tag).
+
 ## [1.0.0-rc.1] — 2026-05-15
 
 First release candidate. All 12 phases of the build plan complete. Final

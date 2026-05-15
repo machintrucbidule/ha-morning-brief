@@ -46,11 +46,14 @@ _MENU_SECTIONS_ALWAYS = (
 
 
 class MorningBriefOptionsFlow(config_entries.OptionsFlow):
-    """8-section options flow."""
+    """8-section options flow.
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Capture the entry; we read its current options for form defaults."""
-        self.config_entry = config_entry
+    HA Core ≥ 2024.12 made ``OptionsFlow.config_entry`` a read-only
+    property injected by the flow manager via ``self._config_entry``;
+    assigning it from a custom ``__init__`` raises AttributeError. We
+    intentionally do NOT define ``__init__`` so the inherited property
+    works on the current API.
+    """
 
     @property
     def _current_options(self) -> dict[str, Any]:

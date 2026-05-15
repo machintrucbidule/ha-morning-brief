@@ -362,7 +362,12 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
-        """Wire the options flow handler (Section 20)."""
+        """Wire the options flow handler (Section 20).
+
+        Per HA Core ≥ 2024.12 the flow manager injects ``config_entry``
+        into the OptionsFlow instance as a read-only property; the
+        constructor takes no arguments.
+        """
         from .options_flow import MorningBriefOptionsFlow
 
-        return MorningBriefOptionsFlow(config_entry)
+        return MorningBriefOptionsFlow()

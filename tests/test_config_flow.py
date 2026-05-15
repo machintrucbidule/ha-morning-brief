@@ -126,7 +126,8 @@ def test_options_flow_main_menu_lists_sections() -> None:
             "entry_id": "x",
         },
     )()
-    flow = MorningBriefOptionsFlow(entry)  # type: ignore[arg-type]
+    flow = MorningBriefOptionsFlow()
+    flow._config_entry = entry  # type: ignore[attr-defined]  # matches HA flow-manager injection
     assert flow._is_morning() is True  # noqa: SLF001 — testing the gate
 
 
