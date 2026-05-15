@@ -32,11 +32,11 @@ def _strategy(hass: HomeAssistant, **overrides: object) -> SleepSensorStrategy:
     return SleepSensorStrategy(hass, cfg)
 
 
-async def test_wake_after_long_sleep_picks_correct_logical_day(hass: HomeAssistant) -> None:
-    """8 hours asleep then wake at 07:00 → logical day is the calendar day before."""
+async def test_wake_at_07h_anchors_to_today(hass: HomeAssistant) -> None:
+    """Wake at 07:00 → anchor (07:00 - 4h = 03:00) lands on today (cal_offset=0)."""
     today = date(2026, 5, 15)
-    asleep_start = _local_dt(today - timedelta(days=1), 23)  # yesterday 23:00
-    wake = _local_dt(today, 7)  # today 07:00
+    asleep_start = _local_dt(today - timedelta(days=1), 23)
+    wake = _local_dt(today, 7)
     changes = [
         StateChange(timestamp=asleep_start, state="on", attributes={}),
         StateChange(timestamp=wake, state="off", attributes={}),
@@ -46,11 +46,24 @@ async def test_wake_after_long_sleep_picks_correct_logical_day(hass: HomeAssista
         AsyncMock(return_value=changes),
     ):
         result = await _strategy(hass).get_logical_date(_local_dt(today, 8))
-    # The wake at 07:00 minus 4h anchors to "today 03:00" → today's date.
-    # That's correct: the night ENDED on today, but the night STARTED yesterday.
-    # The strategy intentionally uses a 4h-back anchor to land on yesterday.
-    assert result[0] == date(2026, 5, 14)
-    assert result[1] == 1
+    assert result == (today, 0)
+
+
+async def test_wake_at_02h_anchors_to_yesterday(hass: HomeAssistant) -> None:
+    """Wake before 04:00 → (wake - 4h) lands on yesterday (cal_offset=1)."""
+    today = date(2026, 5, 15)
+    asleep_start = _local_dt(today - timedelta(days=1), 22)
+    wake = _local_dt(today, 2)  # before cutoff
+    changes = [
+        StateChange(timestamp=asleep_start, state="on", attributes={}),
+        StateChange(timestamp=wake, state="off", attributes={}),
+    ]
+    with patch(
+        "custom_components.morning_brief.logical_day.sleep_sensor.get_short_term",
+        AsyncMock(return_value=changes),
+    ):
+        result = await _strategy(hass).get_logical_date(_local_dt(today, 3))
+    assert result == (date(2026, 5, 14), 1)
 
 
 async def test_nap_filtered_out(hass: HomeAssistant) -> None:
@@ -71,10 +84,8 @@ async def test_nap_filtered_out(hass: HomeAssistant) -> None:
         AsyncMock(return_value=changes),
     ):
         result = await _strategy(hass).get_logical_date(_local_dt(today, 16))
-    # Real wake anchors to date(today - 1 day) since 07:00 - 4h = 03:00 today,
-    # but actually 03:00 on today's date; the spec wants "calendar day that
-    # contains the start of the night" — yesterday. Verified above.
-    assert result[0] == date(2026, 5, 14)
+    # The nap (30 min < 120 min) is dropped; real wake at 07:00 anchors to today.
+    assert result[0] == today
 
 
 async def test_no_transitions_falls_back_to_hard_fallback(hass: HomeAssistant) -> None:
@@ -121,7 +132,8 @@ async def test_multiple_wake_transitions_uses_most_recent(hass: HomeAssistant) -
         AsyncMock(return_value=changes),
     ):
         result = await _strategy(hass).get_logical_date(_local_dt(today, 8))
-    assert result[0] == date(2026, 5, 14)
+    # Most recent wake is today's 07:00 wake — anchors to today.
+    assert result[0] == today
 
 
 def test_validate_config_requires_binary_sensor(hass: HomeAssistant) -> None:
