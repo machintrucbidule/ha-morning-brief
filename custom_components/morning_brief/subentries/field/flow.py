@@ -28,6 +28,13 @@ from .schema import (
     visibility_schema,
 )
 
+# `ConfigSubentryFlow` is a recent HA API (≥ 2024.11). On older HA we fall
+# back to `ConfigFlow` so the package still imports — subentries won't be
+# operational on those versions but the integration still loads.
+_SubentryBase: type = getattr(
+    config_entries, "ConfigSubentryFlow", config_entries.ConfigFlow
+)
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -46,7 +53,7 @@ def _category_ids(config_entry: config_entries.ConfigEntry) -> list[str]:
     return out
 
 
-class FieldSubentryFlow(config_entries.ConfigSubentryFlow):
+class FieldSubentryFlow(_SubentryBase):
     """7-step field add/edit flow."""
 
     def __init__(self) -> None:

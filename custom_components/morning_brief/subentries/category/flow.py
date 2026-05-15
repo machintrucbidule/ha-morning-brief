@@ -13,6 +13,11 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 
+# See subentries/field/flow.py for the rationale on this defensive alias.
+_SubentryBase: type = getattr(
+    config_entries, "ConfigSubentryFlow", config_entries.ConfigFlow
+)
+
 
 def _slugify(label: str) -> str:
     slug = re.sub(r"[^a-z0-9_]+", "_", label.lower()).strip("_")
@@ -39,7 +44,7 @@ def _category_schema(current: dict[str, Any]) -> vol.Schema:
     )
 
 
-class CategorySubentryFlow(config_entries.ConfigSubentryFlow):
+class CategorySubentryFlow(_SubentryBase):
     """Single-screen add/edit for the `category` subentry."""
 
     async def async_step_user(
