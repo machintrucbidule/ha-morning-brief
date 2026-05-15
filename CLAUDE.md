@@ -194,7 +194,11 @@ Python custom_component for Home Assistant. Generates configurable AI-enriched d
   - [x] reports/__init__.py — REPORTS registry + create_report
   - [x] rendering/markdown.py — Section 28 fallback view
   - [x] rendering/notification_short.py — Section 27 3-line mobile body
-- [ ] Phase 8: Config flow & subentries
+- [x] Phase 8: Config flow & subentries
+  - [x] config_flow.py — 6-step initial flow (rationale: shared `_draft` state across steps)
+  - [x] options_flow/* — 8 sections + per-section schemas
+  - [x] subentries/field/ (7 steps) + subentries/category/ (1 step)
+  - [x] Translations populated EN+FR (133 keys, parity validated)
 - [ ] Phase 9: Services, entities, events
 - [ ] Phase 10: Frontend card
 - [ ] Phase 11: Docs & blueprints & examples

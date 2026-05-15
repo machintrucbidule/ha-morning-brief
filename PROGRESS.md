@@ -83,13 +83,14 @@ Live checklist for the integration repo. Updated continuously. Phases mirror Sec
 - [x] Tests: canonical, morning, evening, weekly
 
 ## Phase 8 — Config flow & subentries
-- [ ] config_flow.py
-- [ ] options_flow/general.py, logical_day.py, trigger.py, notification.py, persistence.py, reorder.py, advanced.py
-- [ ] options_flow/__init__.py
-- [ ] subentries/field/schema.py + flow.py
-- [ ] subentries/category/flow.py
-- [ ] Populate translations for all flows
-- [ ] Tests: config flow happy paths + validation errors
+- [x] config_flow.py (6 steps)
+- [x] options_flow/{general,logical_day,trigger,notification,persistence,reorder,advanced}.py
+- [x] options_flow/__init__.py (main menu + step methods)
+- [x] subentries/field/schema.py + flow.py (7-step add/edit)
+- [x] subentries/category/flow.py (single step)
+- [x] subentries/__init__.py (registry)
+- [x] Translations populated EN+FR (133 keys parity)
+- [x] Tests: config flow happy paths + validation errors
 
 ## Phase 9 — Services, entities, events
 - [ ] services.py + services.yaml

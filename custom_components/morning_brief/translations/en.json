@@ -7,6 +7,56 @@
         "data": {
           "report_type": "Report type"
         }
+      },
+      "name_lang": {
+        "title": "Instance name and language",
+        "description": "Give this instance a name and pick the language the AI should reply in.",
+        "data": {
+          "instance_name": "Instance name",
+          "language": "Language"
+        }
+      },
+      "logical_day": {
+        "title": "Logical day strategy",
+        "description": "Decide which calendar date the brief is about. Most users want fixed_cutoff with a 4 AM cutoff.",
+        "data": {
+          "strategy": "Strategy",
+          "cutoff_hour": "Cutoff hour (0-23)",
+          "sleep_sensor_entity": "Sleep sensor (binary_sensor.*)",
+          "awake_state": "Awake state value",
+          "hard_fallback_hour": "Hard fallback hour",
+          "lookback_hours": "Lookback hours",
+          "min_sleep_duration_minutes": "Minimum sleep duration (minutes)"
+        }
+      },
+      "trigger": {
+        "title": "Trigger",
+        "description": "When should the brief be generated?",
+        "data": {
+          "trigger_level": "Trigger level",
+          "time": "Time (HH:MM)",
+          "trigger_entity_id": "Trigger entity",
+          "trigger_to_state": "Trigger state value",
+          "delay_minutes": "Delay (minutes)",
+          "fallback_hour": "Fallback hour"
+        }
+      },
+      "ai": {
+        "title": "AI provider",
+        "description": "Which AI model writes the natural-language summary?",
+        "data": {
+          "ai_provider_type": "AI provider",
+          "entity_id": "ai_task entity",
+          "api_key": "API key",
+          "model": "Model"
+        }
+      },
+      "copy_from": {
+        "title": "Copy fields from existing instance",
+        "description": "Optional: copy fields and categories from another morning_brief instance (one-shot, no live link).",
+        "data": {
+          "copy_from_instance": "Source instance"
+        }
       }
     },
     "error": {
@@ -20,7 +70,152 @@
     "step": {
       "init": {
         "title": "Morning Brief — options",
-        "description": "Adjust settings, fields, categories, and trigger for this instance."
+        "description": "Pick the section you want to edit."
+      },
+      "general": {
+        "title": "General",
+        "description": "Rename the instance, change language, swap AI provider.",
+        "data": {
+          "instance_name": "Instance name",
+          "language": "Language",
+          "ai_provider_type": "AI provider",
+          "ai_entity_id": "ai_task entity",
+          "ai_api_key": "API key",
+          "ai_model": "Model"
+        }
+      },
+      "logical_day": {
+        "title": "Logical day",
+        "description": "Change which calendar date the brief is about.",
+        "data": {
+          "strategy": "Strategy",
+          "cutoff_hour": "Cutoff hour",
+          "sleep_sensor_entity": "Sleep sensor",
+          "awake_state": "Awake state",
+          "hard_fallback_hour": "Hard fallback hour"
+        }
+      },
+      "trigger": {
+        "title": "Trigger",
+        "description": "Change when the brief fires.",
+        "data": {
+          "trigger_level": "Trigger level",
+          "time": "Time",
+          "trigger_entity_id": "Trigger entity",
+          "trigger_to_state": "Trigger state value",
+          "delay_minutes": "Delay (minutes)",
+          "fallback_hour": "Fallback hour"
+        }
+      },
+      "notification": {
+        "title": "Notification",
+        "description": "Where to send the brief and how to make it tappable.",
+        "data": {
+          "notify_service": "Notify service (e.g. mobile_app_phone)",
+          "click_action_url": "Click-action URL",
+          "notification_pinned_fields": "Pinned fields (field IDs)",
+          "also_create_persistent_notification": "Also create persistent notification"
+        }
+      },
+      "persistence": {
+        "title": "Persistence",
+        "description": "How many briefs to keep in history (5–365).",
+        "data": {
+          "retention": "Retention"
+        }
+      },
+      "reorder_fields": {
+        "title": "Reorder fields",
+        "description": "Set the display order for each field."
+      },
+      "reorder_categories": {
+        "title": "Reorder categories",
+        "description": "Set the display order for each category."
+      },
+      "advanced": {
+        "title": "Advanced",
+        "description": "Log level, prompt template override, optional preview service exposure.",
+        "data": {
+          "log_level": "Log level",
+          "prompt_template_override": "Prompt template override (leave empty for default)",
+          "user_custom_context": "User custom context",
+          "expose_preview_service": "Expose preview service"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "field": {
+      "step": {
+        "user": {
+          "title": "Field — source",
+          "data": {
+            "entity_id": "Entity",
+            "provider_type": "Provider type"
+          }
+        },
+        "provider_params": {
+          "title": "Field — provider settings"
+        },
+        "display": {
+          "title": "Field — display",
+          "data": {
+            "label": "Label",
+            "icon": "Icon",
+            "category_id": "Category",
+            "unit": "Unit",
+            "direction_preference": "Direction preference"
+          }
+        },
+        "comparisons": {
+          "title": "Field — comparisons",
+          "data": {
+            "enabled_comparisons": "Enabled comparisons",
+            "rolling_window_days": "Rolling window (days)",
+            "target_value": "Target value"
+          }
+        },
+        "anomaly": {
+          "title": "Field — anomaly detection",
+          "data": {
+            "mode": "Mode",
+            "sigmas": "Sigmas (z-score)",
+            "window_days": "Window (days)",
+            "min_value": "Min value",
+            "max_value": "Max value",
+            "pct": "Percent (% change)",
+            "severity": "Severity"
+          }
+        },
+        "visibility": {
+          "title": "Field — visibility",
+          "data": {
+            "visible_in": "Visible in",
+            "weekly_aggregation": "Weekly aggregation",
+            "ai_insight_policy": "AI insight policy"
+          }
+        },
+        "gate": {
+          "title": "Field — availability gate (optional)",
+          "data": {
+            "gate_entity_id": "Gate sensor",
+            "gate_expected_state": "Expected state"
+          }
+        }
+      }
+    },
+    "category": {
+      "step": {
+        "user": {
+          "title": "Category",
+          "data": {
+            "label": "Label",
+            "icon": "Icon",
+            "order": "Display order",
+            "display_when_empty": "Display when empty",
+            "category_id_override": "Category ID override (advanced)"
+          }
+        }
       }
     }
   },

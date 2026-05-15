@@ -7,6 +7,56 @@
         "data": {
           "report_type": "Type de brief"
         }
+      },
+      "name_lang": {
+        "title": "Nom de l'instance et langue",
+        "description": "Donnez un nom à cette instance et choisissez la langue dans laquelle l'IA doit répondre.",
+        "data": {
+          "instance_name": "Nom de l'instance",
+          "language": "Langue"
+        }
+      },
+      "logical_day": {
+        "title": "Stratégie de jour logique",
+        "description": "Détermine la date calendaire à laquelle se rapporte le brief. Le défaut fixed_cutoff à 4 h convient à 90 % des cas.",
+        "data": {
+          "strategy": "Stratégie",
+          "cutoff_hour": "Heure de bascule (0-23)",
+          "sleep_sensor_entity": "Capteur de sommeil (binary_sensor.*)",
+          "awake_state": "Valeur d'état \"éveillé\"",
+          "hard_fallback_hour": "Heure de fallback dur",
+          "lookback_hours": "Fenêtre de recherche (heures)",
+          "min_sleep_duration_minutes": "Durée minimum de sommeil (minutes)"
+        }
+      },
+      "trigger": {
+        "title": "Déclencheur",
+        "description": "Quand le brief doit-il être généré ?",
+        "data": {
+          "trigger_level": "Niveau de déclencheur",
+          "time": "Heure (HH:MM)",
+          "trigger_entity_id": "Entité déclencheur",
+          "trigger_to_state": "Valeur d'état déclencheur",
+          "delay_minutes": "Délai (minutes)",
+          "fallback_hour": "Heure de fallback"
+        }
+      },
+      "ai": {
+        "title": "Fournisseur IA",
+        "description": "Quel modèle écrit le résumé en langage naturel ?",
+        "data": {
+          "ai_provider_type": "Fournisseur IA",
+          "entity_id": "Entité ai_task",
+          "api_key": "Clé API",
+          "model": "Modèle"
+        }
+      },
+      "copy_from": {
+        "title": "Copier les champs d'une instance existante",
+        "description": "Optionnel : copie ponctuelle des champs et catégories depuis une autre instance morning_brief (pas de lien dynamique).",
+        "data": {
+          "copy_from_instance": "Instance source"
+        }
       }
     },
     "error": {
@@ -20,7 +70,152 @@
     "step": {
       "init": {
         "title": "Morning Brief — options",
-        "description": "Ajustez les réglages, champs, catégories et déclencheur pour cette instance."
+        "description": "Choisissez la section à éditer."
+      },
+      "general": {
+        "title": "Général",
+        "description": "Renommer l'instance, changer la langue, changer de fournisseur IA.",
+        "data": {
+          "instance_name": "Nom de l'instance",
+          "language": "Langue",
+          "ai_provider_type": "Fournisseur IA",
+          "ai_entity_id": "Entité ai_task",
+          "ai_api_key": "Clé API",
+          "ai_model": "Modèle"
+        }
+      },
+      "logical_day": {
+        "title": "Jour logique",
+        "description": "Change la date calendaire à laquelle se rapporte le brief.",
+        "data": {
+          "strategy": "Stratégie",
+          "cutoff_hour": "Heure de bascule",
+          "sleep_sensor_entity": "Capteur de sommeil",
+          "awake_state": "Valeur d'état \"éveillé\"",
+          "hard_fallback_hour": "Heure de fallback dur"
+        }
+      },
+      "trigger": {
+        "title": "Déclencheur",
+        "description": "Change quand le brief se déclenche.",
+        "data": {
+          "trigger_level": "Niveau de déclencheur",
+          "time": "Heure",
+          "trigger_entity_id": "Entité déclencheur",
+          "trigger_to_state": "Valeur d'état déclencheur",
+          "delay_minutes": "Délai (minutes)",
+          "fallback_hour": "Heure de fallback"
+        }
+      },
+      "notification": {
+        "title": "Notification",
+        "description": "Où envoyer le brief et comment le rendre cliquable.",
+        "data": {
+          "notify_service": "Service notify (ex. mobile_app_phone)",
+          "click_action_url": "URL d'action au clic",
+          "notification_pinned_fields": "Champs épinglés (field IDs)",
+          "also_create_persistent_notification": "Créer aussi une notification persistante"
+        }
+      },
+      "persistence": {
+        "title": "Persistance",
+        "description": "Nombre de briefs à conserver dans l'historique (5–365).",
+        "data": {
+          "retention": "Rétention"
+        }
+      },
+      "reorder_fields": {
+        "title": "Réordonner les champs",
+        "description": "Définir l'ordre d'affichage de chaque champ."
+      },
+      "reorder_categories": {
+        "title": "Réordonner les catégories",
+        "description": "Définir l'ordre d'affichage de chaque catégorie."
+      },
+      "advanced": {
+        "title": "Avancé",
+        "description": "Niveau de log, surcharge de prompt, exposition du service preview.",
+        "data": {
+          "log_level": "Niveau de log",
+          "prompt_template_override": "Surcharge du prompt (laisser vide pour défaut)",
+          "user_custom_context": "Contexte utilisateur",
+          "expose_preview_service": "Exposer le service preview"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "field": {
+      "step": {
+        "user": {
+          "title": "Champ — source",
+          "data": {
+            "entity_id": "Entité",
+            "provider_type": "Type de fournisseur"
+          }
+        },
+        "provider_params": {
+          "title": "Champ — paramètres du fournisseur"
+        },
+        "display": {
+          "title": "Champ — affichage",
+          "data": {
+            "label": "Libellé",
+            "icon": "Icône",
+            "category_id": "Catégorie",
+            "unit": "Unité",
+            "direction_preference": "Préférence de direction"
+          }
+        },
+        "comparisons": {
+          "title": "Champ — comparaisons",
+          "data": {
+            "enabled_comparisons": "Comparaisons activées",
+            "rolling_window_days": "Fenêtre glissante (jours)",
+            "target_value": "Valeur cible"
+          }
+        },
+        "anomaly": {
+          "title": "Champ — détection d'anomalie",
+          "data": {
+            "mode": "Mode",
+            "sigmas": "Sigmas (z-score)",
+            "window_days": "Fenêtre (jours)",
+            "min_value": "Valeur min",
+            "max_value": "Valeur max",
+            "pct": "Pourcent (% de variation)",
+            "severity": "Sévérité"
+          }
+        },
+        "visibility": {
+          "title": "Champ — visibilité",
+          "data": {
+            "visible_in": "Visible dans",
+            "weekly_aggregation": "Agrégation hebdomadaire",
+            "ai_insight_policy": "Politique d'insight IA"
+          }
+        },
+        "gate": {
+          "title": "Champ — gate de disponibilité (optionnel)",
+          "data": {
+            "gate_entity_id": "Capteur de gate",
+            "gate_expected_state": "Valeur d'état attendue"
+          }
+        }
+      }
+    },
+    "category": {
+      "step": {
+        "user": {
+          "title": "Catégorie",
+          "data": {
+            "label": "Libellé",
+            "icon": "Icône",
+            "order": "Ordre d'affichage",
+            "display_when_empty": "Afficher quand vide",
+            "category_id_override": "ID de catégorie (avancé)"
+          }
+        }
       }
     }
   },
