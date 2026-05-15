@@ -13,6 +13,7 @@ the field's configured comparisons in order.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
 
@@ -293,11 +294,12 @@ async def compare_trend(
     )
 
 
-_WEEKLY_AGG_REDUCERS = {
-    "sum": sum,
+_WeeklyReducer = Callable[[list[float]], float]
+_WEEKLY_AGG_REDUCERS: dict[str, _WeeklyReducer] = {
+    "sum": lambda vs: float(sum(vs)),
     "mean": lambda vs: sum(vs) / len(vs),
-    "max": max,
-    "min": min,
+    "max": lambda vs: float(max(vs)),
+    "min": lambda vs: float(min(vs)),
     "latest": lambda vs: vs[-1],
 }
 
