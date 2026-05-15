@@ -59,7 +59,7 @@ condition:
 action:
   - service: morning_brief.generate
     data:
-      instance_id: 01HXYZABCDEF
+      entry_id: !secret morning_brief_morning_entry_id
       force: false
 ```
 

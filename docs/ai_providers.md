@@ -33,7 +33,7 @@ ai:
   provider_type: anthropic_direct
   config:
     api_key: !secret anthropic_api_key
-    model: claude-sonnet-4-7
+    model: claude-sonnet-4-6
 ```
 
 Get an API key at https://console.anthropic.com. Per D22, prefer `secrets.yaml` for cleaner config.
