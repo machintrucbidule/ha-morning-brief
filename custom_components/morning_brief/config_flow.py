@@ -58,7 +58,12 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _trigger_schema(trigger_level: str) -> vol.Schema:
-    """Build the voluptuous schema for the chosen trigger level."""
+    """Build the voluptuous schema for the chosen trigger level.
+
+    All schemas allow extra keys (``vol.REMOVE_EXTRA``): the conditional
+    one-screen forms ship the union of fields, and we only keep what's
+    relevant per the chosen enum.
+    """
     if trigger_level == TRIGGER_SCHEDULE:
         return vol.Schema(
             {
@@ -66,7 +71,8 @@ def _trigger_schema(trigger_level: str) -> vol.Schema:
                 vol.Optional("days_of_week", default=list(range(7))): [
                     vol.All(int, vol.Range(min=0, max=6))
                 ],
-            }
+            },
+            extra=vol.REMOVE_EXTRA,
         )
     if trigger_level == TRIGGER_SENSOR_BASED:
         return vol.Schema(
@@ -81,9 +87,10 @@ def _trigger_schema(trigger_level: str) -> vol.Schema:
                     "fallback_hour", default=DEFAULT_FALLBACK_HOUR
                 ): vol.All(int, vol.Range(min=0, max=23)),
                 vol.Optional("fallback_active", default=True): bool,
-            }
+            },
+            extra=vol.REMOVE_EXTRA,
         )
-    return vol.Schema({})  # external — no extra params
+    return vol.Schema({}, extra=vol.REMOVE_EXTRA)
 
 
 def _logical_day_schema(strategy: str) -> vol.Schema:
@@ -93,7 +100,8 @@ def _logical_day_schema(strategy: str) -> vol.Schema:
                 vol.Optional("cutoff_hour", default=DEFAULT_CUTOFF_HOUR): vol.All(
                     int, vol.Range(min=0, max=23)
                 ),
-            }
+            },
+            extra=vol.REMOVE_EXTRA,
         )
     if strategy == LOGICAL_DAY_SLEEP_SENSOR:
         return vol.Schema(
@@ -110,29 +118,34 @@ def _logical_day_schema(strategy: str) -> vol.Schema:
                     "min_sleep_duration_minutes",
                     default=DEFAULT_MIN_SLEEP_DURATION_MINUTES,
                 ): vol.All(int, vol.Range(min=0)),
-            }
+            },
+            extra=vol.REMOVE_EXTRA,
         )
-    return vol.Schema({})  # manual — no params
+    return vol.Schema({}, extra=vol.REMOVE_EXTRA)
 
 
 def _ai_schema(provider_type: str) -> vol.Schema:
     if provider_type == AI_PROVIDER_HA_AI_TASK:
-        return vol.Schema({vol.Required("entity_id"): str})
+        return vol.Schema(
+            {vol.Required("entity_id"): str}, extra=vol.REMOVE_EXTRA
+        )
     if provider_type == AI_PROVIDER_ANTHROPIC_DIRECT:
         return vol.Schema(
             {
                 vol.Required("api_key"): str,
                 vol.Optional("model", default="claude-sonnet-4-7"): str,
-            }
+            },
+            extra=vol.REMOVE_EXTRA,
         )
     if provider_type == AI_PROVIDER_OPENAI_DIRECT:
         return vol.Schema(
             {
                 vol.Required("api_key"): str,
                 vol.Optional("model", default="gpt-4o-mini"): str,
-            }
+            },
+            extra=vol.REMOVE_EXTRA,
         )
-    return vol.Schema({})  # disabled — no params
+    return vol.Schema({}, extra=vol.REMOVE_EXTRA)
 
 
 class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
