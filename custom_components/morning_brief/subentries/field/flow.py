@@ -97,7 +97,7 @@ class FieldSubentryFlow(_SubentryBase):
             return await self.async_step_display()
         picked = str(self._draft.get("provider_type", ""))
         entity_id = str(self._draft.get("entity_id", ""))
-        recommended = _recommend_provider_type(self.hass, entity_id)  # type: ignore[attr-defined]
+        recommended = _recommend_provider_type(self.hass, entity_id)
         rec_msg = (
             f"Type recommandé pour `{entity_id}` : **{recommended}**"
             if recommended
@@ -239,13 +239,16 @@ class FieldSubentryFlow(_SubentryBase):
         if entry_id:
             via_ctx = hass.config_entries.async_get_entry(entry_id)
             if via_ctx is not None:
-                return via_ctx
+                return via_ctx  # type: ignore[no-any-return]
         # Last-ditch fallback: any morning_brief entry. Single-instance
         # users see the right list; multi-instance users see the union
         # which is better than empty.
-        from ..const import DOMAIN
+        from ...const import DOMAIN
+
         entries = list(hass.config_entries.async_entries(DOMAIN))
-        return entries[0] if entries else None
+        if entries:
+            return entries[0]  # type: ignore[no-any-return]
+        return None
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
