@@ -6,6 +6,73 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0-rc.7] — 2026-05-16
+
+### Fixed (live-HA pass #5 — root-cause MappingProxyType bug + copy_from + feedback)
+
+- **ROOT CAUSE des dropdowns vides (catégorie + reorder).**
+  `entry.subentries` est une `MappingProxyType`, pas un `dict`.
+  `isinstance(MappingProxyType, dict)` retourne **False**, donc le code
+  itérait sur les KEYS au lieu des VALUES → aucun ConfigSubentry trouvé
+  malgré la présence de catégories réelles. Trois endroits affectés
+  (reorder.py, field/flow.py, __init__._attach_subentries). Helper
+  partagé `subentries.iter_subentries(entry)` qui utilise
+  `isinstance(subs, Mapping)` (couvre dict ET MappingProxyType). G27
+  ajoutée.
+- **copy_from_instance ne copiait rien.** Le champ était écrit dans
+  `entry.data` lors de la création mais aucun code ne le lisait. Ajout
+  de `_maybe_copy_subentries()` dans `async_setup_entry` qui copie les
+  champs + catégories de la source vers la nouvelle instance au
+  premier setup (avec flag `_copy_done` pour éviter la re-copie au
+  restart). Utilise `hass.config_entries.async_add_subentry` +
+  `ConfigSubentryData` avec garde defensive (skip + log si l'API
+  manque sur de vieilles HA).
+- **L1/L2/L3 nomenclature technique remplacée par des noms parlants** :
+  "Horaire fixe (heure + jours)", "Basé sur un capteur (avec délai +
+  fallback)", "Externe (votre propre automatisation, via service)".
+  Description du picker simplifiée (plus de jargon).
+- **awake_state était un champ texte sans aide.** Ajout d'un
+  `data_description` qui explique : "Valeur que prend le capteur quand
+  vous êtes RÉVEILLÉ. La plupart du temps « off » ou « false »". Plus
+  hint sur où le vérifier (Outils dev → États). Idem pour les 4 autres
+  champs du sleep_sensor flow.
+- **Generate / Preview button sans feedback visuel.** Ajout d'une
+  `persistent_notification` créée automatiquement après chaque
+  generate ou preview. Le user voit immédiatement le brief rendu en
+  markdown dans la cloche HA, sans avoir à installer le card ni à
+  ouvrir Developer Tools. Preview est préfixée "PREVIEW".
+- **Descriptions provider_type clarifiées** — `cumulative` est
+  maintenant "Compteur quotidien — capteur qui se remet à 0 chaque
+  jour (pas, kWh consommés, minutes de sommeil)" (vs précédemment
+  "Cumulatif — compteur qui se remet à zéro"). `duration` clarifié à
+  "Temps écoulé — durée depuis un événement passé (entretien litière,
+  dernière visite)" pour qu'on ne confonde pas avec "durée de quelque
+  chose comme un sommeil".
+
+### Process
+
+- Gotcha G26 ajoutée : NEVER commit between a tag and the next push.
+  HACS détecte tout commit post-tag comme "Update available", même un
+  docs-only. Bundle les docs IN le release commit avant de tag, ou
+  retag.
+- Gotcha G27 ajoutée : `entry.subentries` est MappingProxyType, jamais
+  utiliser `isinstance(x, dict)` dessus.
+
+### Changed
+
+- Bump manifest.json version `1.0.0rc6` → `1.0.0rc7`.
+
+### Deferred to a later RC
+
+- **Tri/différenciation visuelle Champ vs Catégorie** sur la page
+  d'intégration — HA UI affiche les subentries dans l'ordre de
+  création par défaut. Possibles approches: prefix dans `title`
+  ou utilisation des nouveaux subentry types `entry_type`. À tester
+  en live.
+- **Smart provider_type recommendation** basé sur l'analyse du sensor
+  choisi (state_class, device_class, unit_of_measurement, état) —
+  feature lourde, demande un module de profilage de sensor.
+
 ## [1.0.0-rc.6] — 2026-05-16
 
 ### Fixed (live-HA pass #4 — multiple subentry + selectors issues)

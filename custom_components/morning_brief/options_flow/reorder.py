@@ -8,6 +8,8 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import selector
 
+from ..subentries import iter_subentries
+
 
 def _subentry_order_schema(entry: ConfigEntry, subentry_type: str) -> vol.Schema:
     """One numeric-order field per existing subentry of subentry_type.
@@ -16,12 +18,8 @@ def _subentry_order_schema(entry: ConfigEntry, subentry_type: str) -> vol.Schema
     HA still renders the form with the step description, which we use
     to tell the user there's nothing to reorder yet.
     """
-    subentries = getattr(entry, "subentries", {}) or {}
-    items = (
-        list(subentries.values()) if isinstance(subentries, dict) else list(subentries)
-    )
     fields: dict[Any, Any] = {}
-    for sub in items:
+    for sub in iter_subentries(entry):
         if getattr(sub, "subentry_type", None) != subentry_type:
             continue
         sid = getattr(sub, "subentry_id", None) or getattr(sub, "unique_id", None)
@@ -31,7 +29,9 @@ def _subentry_order_schema(entry: ConfigEntry, subentry_type: str) -> vol.Schema
         current_order = int(data.get("order", 0))
         title = getattr(sub, "title", None) or data.get("label") or sid
         fields[
-            vol.Optional(f"order__{sid}", default=current_order, description=str(title))
+            vol.Optional(
+                f"order__{sid}", default=current_order, description=str(title)
+            )
         ] = selector.NumberSelector(
             selector.NumberSelectorConfig(
                 min=0, max=999, step=1, mode=selector.NumberSelectorMode.BOX

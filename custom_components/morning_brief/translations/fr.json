@@ -39,11 +39,18 @@
           "hard_fallback_hour": "Heure de fallback dur",
           "lookback_hours": "Fenêtre de recherche (heures)",
           "min_sleep_duration_minutes": "Durée minimum de sommeil (minutes)"
+        },
+        "data_description": {
+          "sleep_sensor_entity": "binary_sensor.* qui indique si vous dormez. Typiquement votre montre / bracelet connecté (Amazfit, Fitbit, Withings...).",
+          "awake_state": "Valeur que prend le capteur quand vous êtes RÉVEILLÉ. La plupart du temps « off » (sommeil = on, réveil = off) ou « false ». Consultez l'état actuel du capteur dans Outils développeur → États.",
+          "hard_fallback_hour": "Si aucune session de sommeil n'est détectée sous 36 h, on bascule de jour à cette heure-là (sécurité).",
+          "lookback_hours": "Combien d'heures en arrière chercher la dernière session de sommeil.",
+          "min_sleep_duration_minutes": "Durée min. pour qu'une session compte comme « sommeil » (filtre les siestes courtes)."
         }
       },
       "trigger_level": {
         "title": "Déclencheur — niveau",
-        "description": "Comment décider de l'instant où le brief est généré ? L1 = horaire fixe, L2 = sensor + délai, L3 = uniquement via service / votre automatisation.",
+        "description": "Comment décider de l'instant où le brief est généré ?",
         "data": {
           "trigger_level": "Niveau de déclencheur"
         }
@@ -192,13 +199,20 @@
           "hard_fallback_hour": "Heure de fallback dur",
           "lookback_hours": "Fenêtre de recherche (heures)",
           "min_sleep_duration_minutes": "Durée minimum de sommeil (minutes)"
+        },
+        "data_description": {
+          "sleep_sensor_entity": "binary_sensor.* qui indique si vous dormez. Typiquement votre montre / bracelet connecté (Amazfit, Fitbit, Withings...).",
+          "awake_state": "Valeur que prend le capteur quand vous êtes RÉVEILLÉ. La plupart du temps « off » (sommeil = on, réveil = off) ou « false ». Consultez l'état actuel du capteur dans Outils développeur → États.",
+          "hard_fallback_hour": "Si aucune session de sommeil n'est détectée sous 36 h, on bascule de jour à cette heure-là (sécurité).",
+          "lookback_hours": "Combien d'heures en arrière chercher la dernière session de sommeil.",
+          "min_sleep_duration_minutes": "Durée min. pour qu'une session compte comme « sommeil » (filtre les siestes courtes)."
         }
       },
       "trigger_picker": {
-        "title": "Déclencheur — niveau",
-        "description": "Comment décider de l'instant où le brief est généré ? L1 = horaire fixe, L2 = sensor + délai, L3 = uniquement via service / votre automatisation.",
+        "title": "Déclencheur — type",
+        "description": "Comment décider de l'instant où le brief est généré ?",
         "data": {
-          "trigger_level": "Niveau de déclencheur"
+          "trigger_level": "Type de déclencheur"
         }
       },
       "trigger_schedule": {
@@ -422,18 +436,18 @@
     },
     "trigger_level": {
       "options": {
-        "schedule": "L1 — horaire fixe (cron-style)",
-        "sensor_based": "L2 — basé sur un capteur (avec délai + fallback)",
-        "external": "L3 — externe (votre propre automatisation)"
+        "schedule": "Horaire fixe (heure + jours)",
+        "sensor_based": "Basé sur un capteur (avec délai + fallback)",
+        "external": "Externe (votre propre automatisation, via service)"
       }
     },
     "provider_type": {
       "options": {
-        "cumulative": "Cumulatif — compteur qui se remet à zéro (pas, kWh, minutes de sommeil)",
-        "instantaneous": "Instantané — valeur lue à l'instant T (température, FC, poids)",
-        "event_based": "Événement — capteur qui ne change que sur événement (balance Wi-Fi, lecture manuelle)",
-        "state": "État — capteur non-numérique (couleur Tempo, présence)",
-        "duration": "Durée — temps écoulé depuis un événement (entretien litière, dernière visite)",
+        "cumulative": "Compteur quotidien — capteur qui se remet à 0 chaque jour (pas, kWh consommés, minutes de sommeil)",
+        "instantaneous": "Valeur instantanée — lecture à l'instant T (température, fréquence cardiaque, poids)",
+        "event_based": "Mesure ponctuelle — capteur qui ne change qu'à l'occasion d'un événement (balance Wi-Fi, lecture manuelle)",
+        "state": "État non-numérique — capteur qui prend des valeurs discrètes (couleur Tempo, présence, statut)",
+        "duration": "Temps écoulé — durée depuis un événement passé (entretien litière, dernière visite, dernier nettoyage)",
         "calendar": "Calendrier — événements à venir d'une entité calendar.*",
         "weather": "Météo — bloc composite (entité weather.* ou capteur Open-Meteo)",
         "manual": "Manuel — valeur saisie via un input_number / input_text / input_datetime"

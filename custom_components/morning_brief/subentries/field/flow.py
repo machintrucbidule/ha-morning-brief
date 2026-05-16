@@ -47,12 +47,10 @@ def _categories(
     config_entry: config_entries.ConfigEntry | None,
 ) -> list[tuple[str, str]]:
     """Pull (category_id, display_label) tuples from the parent entry."""
-    if config_entry is None:
-        return []
-    subentries = getattr(config_entry, "subentries", {}) or {}
-    items = subentries.values() if isinstance(subentries, dict) else subentries
+    from .. import iter_subentries
+
     out: list[tuple[str, str]] = []
-    for sub in items:
+    for sub in iter_subentries(config_entry):
         if getattr(sub, "subentry_type", None) != "category":
             continue
         data = getattr(sub, "data", {}) or {}

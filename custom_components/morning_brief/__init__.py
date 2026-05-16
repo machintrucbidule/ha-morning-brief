@@ -52,6 +52,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
+    # First-setup one-shot copy of subentries from a source instance.
+    # async_add_subentry triggers an entry reload, which re-runs this
+    # function — the _copy_done flag in entry.data prevents recursion.
+    if entry.data.get("copy_from_instance") and not entry.data.get("_copy_done"):
+        hass.async_create_task(_maybe_copy_subentries(hass, entry))
+
     # Initial refresh reads the latest persisted brief — does NOT regenerate.
     await coordinator.async_config_entry_first_refresh()
 
@@ -143,13 +149,11 @@ def _attach_subentries(
     entry: ConfigEntry, coordinator: MorningBriefCoordinator
 ) -> None:
     """Split the entry's subentries into fields + categories lists."""
-    subentries = getattr(entry, "subentries", {}) or {}
-    items: list[Any] = (
-        list(subentries.values()) if isinstance(subentries, dict) else list(subentries)
-    )
+    from .subentries import iter_subentries
+
     fields: list[dict[str, Any]] = []
     categories: list[dict[str, Any]] = []
-    for sub in items:
+    for sub in iter_subentries(entry):
         kind = getattr(sub, "subentry_type", None) or getattr(sub, "type", None)
         data = dict(getattr(sub, "data", {}) or {})
         if kind == "field":
@@ -166,6 +170,72 @@ def _attach_subentries(
             )
     coordinator.fields = fields
     coordinator.categories = categories
+
+
+async def _maybe_copy_subentries(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """One-shot copy of subentries from a source instance (Section 19 step 6).
+
+    The user picks a source instance during the initial config flow.
+    We copy its fields and categories into the new entry on first
+    setup, then flag the entry so subsequent restarts don't re-copy.
+    """
+    from .subentries import iter_subentries
+
+    source_id = entry.data.get("copy_from_instance")
+    if not source_id or entry.data.get("_copy_done"):
+        return
+    source = hass.config_entries.async_get_entry(str(source_id))
+    new_data: dict[str, Any] = dict(entry.data)
+    new_data["_copy_done"] = True
+    if source is None:
+        _LOGGER.warning(
+            "copy_from source %s not found — skipping subentry copy",
+            source_id,
+        )
+        hass.config_entries.async_update_entry(entry, data=new_data)
+        return
+    add_subentry = getattr(hass.config_entries, "async_add_subentry", None)
+    if add_subentry is None:
+        _LOGGER.warning(
+            "HA Core does not expose async_add_subentry; copy_from skipped"
+        )
+        hass.config_entries.async_update_entry(entry, data=new_data)
+        return
+    try:
+        from homeassistant.config_entries import ConfigSubentryData  # type: ignore[attr-defined]
+    except ImportError:
+        _LOGGER.warning(
+            "ConfigSubentryData not available on this HA — copy_from skipped"
+        )
+        hass.config_entries.async_update_entry(entry, data=new_data)
+        return
+    copied = 0
+    for sub in iter_subentries(source):
+        try:
+            sub_type = getattr(sub, "subentry_type", None) or ""
+            if sub_type not in ("field", "category"):
+                continue
+            payload = ConfigSubentryData(  # type: ignore[call-arg]
+                data=dict(getattr(sub, "data", {}) or {}),
+                subentry_type=sub_type,
+                title=str(getattr(sub, "title", "") or ""),
+                unique_id=None,
+            )
+            add_subentry(entry, payload)
+            copied += 1
+        except Exception:  # noqa: BLE001 — entry-point guard
+            _LOGGER.exception(
+                "Failed to copy subentry %s from %s",
+                getattr(sub, "subentry_id", "?"),
+                source_id,
+            )
+    _LOGGER.info(
+        "copy_from: copied %d subentries from %s into %s",
+        copied,
+        source_id,
+        entry.entry_id,
+    )
+    hass.config_entries.async_update_entry(entry, data=new_data)
 
 
 def _attach_options(

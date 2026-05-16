@@ -165,6 +165,11 @@ class MorningBriefCoordinator(DataUpdateCoordinator[dict[str, Any] | None]):
             )
 
         self.async_set_updated_data(canonical)
+        self._publish_persistent_notification(
+            title=f"Morning Brief — {self.instance_name}",
+            markdown=brief["rendered_markdown"],
+            notification_id=f"morning_brief_{self.entry.entry_id}",
+        )
         return canonical
 
     async def async_preview_brief(self) -> dict[str, Any] | None:
@@ -175,10 +180,40 @@ class MorningBriefCoordinator(DataUpdateCoordinator[dict[str, Any] | None]):
         logical_date, cal_offset = await self.logical_day_strategy.get_logical_date(now)
         try:
             builder = create_report(self.hass, self.report_type, self)
-            return await builder.build(logical_date, cal_offset)
+            canonical = await builder.build(logical_date, cal_offset)
         except Exception:  # noqa: BLE001 — D9 / R6
             _LOGGER.exception("Preview generation failed")
             return None
+        # Show the preview as a persistent notification so the user can
+        # actually SEE the result when clicking the Preview button.
+        self._publish_persistent_notification(
+            title=f"Morning Brief — PREVIEW — {self.instance_name}",
+            markdown=render_markdown(canonical),
+            notification_id=f"morning_brief_preview_{self.entry.entry_id}",
+        )
+        return canonical
+
+    def _publish_persistent_notification(
+        self, *, title: str, markdown: str, notification_id: str
+    ) -> None:
+        """Create a HA persistent notification with the rendered brief.
+
+        Visible in the bell icon in the HA sidebar. Lets the user see
+        the brief immediately after pressing Generate / Preview without
+        having to open Developer tools → States or install the card.
+        """
+        try:
+            from homeassistant.components import (  # local import — keeps top-level light
+                persistent_notification,
+            )
+            persistent_notification.async_create(
+                self.hass,
+                message=markdown,
+                title=title,
+                notification_id=notification_id,
+            )
+        except Exception:  # noqa: BLE001 — never let notification failure crash generation
+            _LOGGER.warning("Failed to publish persistent notification", exc_info=True)
 
     def get_last_brief(self) -> dict[str, Any] | None:
         """Return the cached canonical from the last successful refresh."""

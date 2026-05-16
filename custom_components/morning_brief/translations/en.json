@@ -39,11 +39,18 @@
           "hard_fallback_hour": "Hard fallback hour",
           "lookback_hours": "Lookback hours",
           "min_sleep_duration_minutes": "Minimum sleep duration (minutes)"
+        },
+        "data_description": {
+          "sleep_sensor_entity": "binary_sensor.* that indicates whether you are sleeping. Typically your wearable (Amazfit, Fitbit, Withings, …).",
+          "awake_state": "The value the sensor takes when you are AWAKE. Usually \"off\" (sleeping = on, awake = off) or \"false\". Check the current state under Developer tools → States.",
+          "hard_fallback_hour": "If no sleep session is detected within 36 h, the day rolls over at this hour (safety net).",
+          "lookback_hours": "How far back to search for the most recent sleep session.",
+          "min_sleep_duration_minutes": "Minimum length to count as a sleep session (filters out short naps)."
         }
       },
       "trigger_level": {
         "title": "Trigger — level",
-        "description": "How should the brief decide when to fire? L1 = fixed schedule, L2 = sensor + delay, L3 = only via service / your own automation.",
+        "description": "How should the brief decide when to fire?",
         "data": {
           "trigger_level": "Trigger level"
         }
@@ -192,11 +199,18 @@
           "hard_fallback_hour": "Hard fallback hour",
           "lookback_hours": "Lookback hours",
           "min_sleep_duration_minutes": "Minimum sleep duration (minutes)"
+        },
+        "data_description": {
+          "sleep_sensor_entity": "binary_sensor.* that indicates whether you are sleeping. Typically your wearable (Amazfit, Fitbit, Withings, …).",
+          "awake_state": "The value the sensor takes when you are AWAKE. Usually \"off\" (sleeping = on, awake = off) or \"false\". Check the current state under Developer tools → States.",
+          "hard_fallback_hour": "If no sleep session is detected within 36 h, the day rolls over at this hour (safety net).",
+          "lookback_hours": "How far back to search for the most recent sleep session.",
+          "min_sleep_duration_minutes": "Minimum length to count as a sleep session (filters out short naps)."
         }
       },
       "trigger_picker": {
         "title": "Trigger — level",
-        "description": "How should the brief decide when to fire? L1 = fixed schedule, L2 = sensor + delay, L3 = only via service / your own automation.",
+        "description": "How should the brief decide when to fire?",
         "data": {
           "trigger_level": "Trigger level"
         }
@@ -422,18 +436,18 @@
     },
     "trigger_level": {
       "options": {
-        "schedule": "L1 — fixed schedule (cron-style)",
-        "sensor_based": "L2 — sensor-based (with delay + fallback)",
-        "external": "L3 — external (your own automation)"
+        "schedule": "Fixed schedule (time + weekdays)",
+        "sensor_based": "Sensor-based (with delay + fallback)",
+        "external": "External (your own automation, via service)"
       }
     },
     "provider_type": {
       "options": {
-        "cumulative": "Cumulative — counter that resets (steps, kWh, sleep minutes)",
-        "instantaneous": "Instantaneous — value read at the moment (temperature, HR, weight)",
-        "event_based": "Event-based — sensor that only changes on events (Wi-Fi scale, manual reading)",
-        "state": "State — non-numeric sensor (tariff colour, presence)",
-        "duration": "Duration — time elapsed since an event (litter maintenance, last visit)",
+        "cumulative": "Daily counter — sensor that resets to 0 each day (steps, kWh consumed, sleep minutes)",
+        "instantaneous": "Instantaneous value — read at the moment (temperature, heart rate, weight)",
+        "event_based": "Point-in-time reading — sensor that only updates on an event (Wi-Fi scale, manual reading)",
+        "state": "Non-numeric state — sensor that takes discrete values (Tempo colour, presence, status)",
+        "duration": "Elapsed time — duration since a past event (litter maintenance, last visit, last clean)",
         "calendar": "Calendar — upcoming events from a calendar.* entity",
         "weather": "Weather — composite block (weather.* entity or Open-Meteo sensor)",
         "manual": "Manual — value entered via input_number / input_text / input_datetime"
