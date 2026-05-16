@@ -85,15 +85,33 @@ class FieldSubentryFlow(_SubentryBase):
     async def async_step_provider_params(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Step 2 — provider-specific params."""
+        """Step 2 — provider-specific params.
+
+        Shows a heuristic recommendation in the description (based on
+        the sensor's state_class / device_class / domain) so the user
+        can tell at a glance whether their picked provider_type matches
+        the entity.
+        """
         if user_input is not None:
             self._draft["provider_config"] = user_input
             return await self.async_step_display()
+        picked = str(self._draft.get("provider_type", ""))
+        entity_id = str(self._draft.get("entity_id", ""))
+        recommended = _recommend_provider_type(self.hass, entity_id)  # type: ignore[attr-defined]
+        rec_msg = (
+            f"Type recommandé pour `{entity_id}` : **{recommended}**"
+            if recommended
+            else f"Aucune recommandation possible pour `{entity_id}` (capteur inconnu)."
+        )
+        if picked and recommended and picked != recommended:
+            rec_msg += (
+                f"\n\n⚠️ Vous avez choisi **{picked}**. Si vous voulez "
+                f"changer, fermez et recommencez (la croix ×)."
+            )
         return self.async_show_form(
             step_id="provider_params",
-            data_schema=provider_params_schema(
-                str(self._draft.get("provider_type", "")), self._draft
-            ),
+            data_schema=provider_params_schema(picked, self._draft),
+            description_placeholders={"recommendation": rec_msg},
         )
 
     async def async_step_display(
@@ -199,8 +217,10 @@ class FieldSubentryFlow(_SubentryBase):
         """Resolve the parent config entry for category lookups.
 
         HA exposes the parent entry through several attribute names
-        across versions — try them all defensively. Returns None only on
-        very old HA where SubentryFlow isn't even available.
+        across versions — try them all defensively. As a last resort,
+        return any morning_brief entry (single-instance is the common
+        case; for multi-instance the slight cross-pollution is better
+        than an empty dropdown).
         """
         # HA ≥ 2025.x: source_entry is set by the flow manager on add/edit
         entry = getattr(self, "source_entry", None)
@@ -210,13 +230,22 @@ class FieldSubentryFlow(_SubentryBase):
         entry = getattr(self, "config_entry", None)
         if entry is not None and not isinstance(entry, str):
             return entry  # type: ignore[no-any-return]
+        hass = getattr(self, "hass", None)
+        if hass is None:
+            return None
         # Fallback: derive from the flow context
         ctx = getattr(self, "context", {}) or {}
         entry_id = ctx.get("source_entry_id") or ctx.get("entry_id")
-        hass = getattr(self, "hass", None)
-        if entry_id and hass is not None:
-            return hass.config_entries.async_get_entry(entry_id)  # type: ignore[no-any-return]
-        return None
+        if entry_id:
+            via_ctx = hass.config_entries.async_get_entry(entry_id)
+            if via_ctx is not None:
+                return via_ctx
+        # Last-ditch fallback: any morning_brief entry. Single-instance
+        # users see the right list; multi-instance users see the union
+        # which is better than empty.
+        from ..const import DOMAIN
+        entries = list(hass.config_entries.async_entries(DOMAIN))
+        return entries[0] if entries else None
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
@@ -233,6 +262,54 @@ class FieldSubentryFlow(_SubentryBase):
         if subentry is not None:
             self._draft = dict(getattr(subentry, "data", {}) or {})
         return await self.async_step_user(user_input)
+
+
+def _recommend_provider_type(hass: Any, entity_id: str) -> str | None:
+    """Heuristic recommendation of provider_type for the picked entity.
+
+    Looks at the entity's current state, state_class, device_class, and
+    domain to suggest the most likely provider. Returns None if the
+    entity is unknown (state object missing).
+
+    Order of decisions:
+    1. Domain-based shortcuts (weather / calendar / input_* / binary_sensor).
+    2. state_class + device_class combos (cumulative for energy/water counters).
+    3. Numeric vs non-numeric current state (instantaneous vs state).
+    """
+    if not entity_id:
+        return None
+    state = hass.states.get(entity_id) if hasattr(hass, "states") else None
+    if state is None:
+        return None
+    domain = entity_id.split(".", 1)[0] if "." in entity_id else ""
+    attrs = state.attributes or {}
+    state_class = attrs.get("state_class")
+    device_class = attrs.get("device_class")
+    if domain == "weather":
+        return "weather"
+    if domain == "calendar":
+        return "calendar"
+    if domain in ("input_number", "input_text", "input_datetime"):
+        return "manual"
+    if domain == "binary_sensor":
+        return "state"
+    if state_class in ("total_increasing", "total") and device_class in (
+        "energy",
+        "water",
+        "gas",
+        "monetary",
+    ):
+        return "cumulative"
+    if state_class == "measurement":
+        return "instantaneous"
+    # No state_class — branch on whether the current value is numeric.
+    try:
+        float(state.state)
+        # Numeric without state_class: rare-update sensor (Wi-Fi scale,
+        # manual reading) → event_based is usually right.
+        return "event_based"
+    except (TypeError, ValueError):
+        return "state"
 
 
 # Silence unused-import for json (reserved for future state_mapping parsing).

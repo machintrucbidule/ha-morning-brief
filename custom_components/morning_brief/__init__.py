@@ -175,57 +175,96 @@ def _attach_subentries(
 async def _maybe_copy_subentries(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """One-shot copy of subentries from a source instance (Section 19 step 6).
 
-    The user picks a source instance during the initial config flow.
-    We copy its fields and categories into the new entry on first
-    setup, then flag the entry so subsequent restarts don't re-copy.
+    Verbose INFO logs at every step so the user can diagnose via the
+    HA logs (Settings → Logs, filter on morning_brief) why a copy was
+    skipped on their HA version.
     """
     from .subentries import iter_subentries
 
     source_id = entry.data.get("copy_from_instance")
     if not source_id or entry.data.get("_copy_done"):
         return
+    _LOGGER.info(
+        "copy_from: starting copy from %s into %s",
+        source_id,
+        entry.entry_id,
+    )
     source = hass.config_entries.async_get_entry(str(source_id))
     new_data: dict[str, Any] = dict(entry.data)
     new_data["_copy_done"] = True
     if source is None:
         _LOGGER.warning(
-            "copy_from source %s not found — skipping subentry copy",
+            "copy_from: source instance %s not found — skipping (marking _copy_done)",
             source_id,
         )
         hass.config_entries.async_update_entry(entry, data=new_data)
         return
+    source_subs = list(iter_subentries(source))
+    _LOGGER.info(
+        "copy_from: source %s exposes %d subentries",
+        source_id,
+        len(source_subs),
+    )
     add_subentry = getattr(hass.config_entries, "async_add_subentry", None)
     if add_subentry is None:
         _LOGGER.warning(
-            "HA Core does not expose async_add_subentry; copy_from skipped"
+            "copy_from: HA does not expose async_add_subentry — skipping"
         )
         hass.config_entries.async_update_entry(entry, data=new_data)
         return
-    try:
-        from homeassistant.config_entries import ConfigSubentryData  # type: ignore[attr-defined]
-    except ImportError:
-        _LOGGER.warning(
-            "ConfigSubentryData not available on this HA — copy_from skipped"
-        )
-        hass.config_entries.async_update_entry(entry, data=new_data)
-        return
+    # Resolve the subentry container class HA expects. Tried in order:
+    # 1. ConfigSubentry (the actual config object on HA ≥ 2025.x)
+    # 2. ConfigSubentryData (a TypedDict alias on some versions)
+    # 3. dict (last resort — HA may coerce internally)
+    sub_cls: Any = None
+    for name in ("ConfigSubentry", "ConfigSubentryData"):
+        try:
+            sub_cls = getattr(
+                __import__(
+                    "homeassistant.config_entries", fromlist=[name]
+                ),
+                name,
+            )
+            _LOGGER.info("copy_from: using %s as subentry container", name)
+            break
+        except (ImportError, AttributeError):
+            continue
     copied = 0
-    for sub in iter_subentries(source):
+    for sub in source_subs:
         try:
             sub_type = getattr(sub, "subentry_type", None) or ""
             if sub_type not in ("field", "category"):
+                _LOGGER.debug(
+                    "copy_from: skipping subentry of unsupported type %s",
+                    sub_type,
+                )
                 continue
-            payload = ConfigSubentryData(
-                data=dict(getattr(sub, "data", {}) or {}),
-                subentry_type=sub_type,
-                title=str(getattr(sub, "title", "") or ""),
-                unique_id=None,
-            )
+            sub_data = dict(getattr(sub, "data", {}) or {})
+            sub_title = str(getattr(sub, "title", "") or "")
+            if sub_cls is None:
+                payload: Any = {
+                    "data": sub_data,
+                    "subentry_type": sub_type,
+                    "title": sub_title,
+                    "unique_id": None,
+                }
+            else:
+                payload = sub_cls(
+                    data=sub_data,
+                    subentry_type=sub_type,
+                    title=sub_title,
+                    unique_id=None,
+                )
             add_subentry(entry, payload)
             copied += 1
+            _LOGGER.info(
+                "copy_from: copied %s subentry %r",
+                sub_type,
+                sub_title,
+            )
         except Exception:  # noqa: BLE001 — entry-point guard
             _LOGGER.exception(
-                "Failed to copy subentry %s from %s",
+                "copy_from: failed to copy subentry %s from %s",
                 getattr(sub, "subentry_id", "?"),
                 source_id,
             )

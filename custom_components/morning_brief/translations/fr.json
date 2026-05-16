@@ -258,11 +258,11 @@
       },
       "reorder_fields": {
         "title": "Réordonner les champs",
-        "description": "Saisissez un numéro d'ordre par champ. Plus le numéro est petit, plus le champ apparaît tôt dans le brief. Si aucun champ ne s'affiche, ajoutez-en d'abord via le bouton « + Ajouter un sous-élément » sur la page de l'intégration."
+        "description": "Saisissez un numéro d'ordre par champ. Plus le numéro est petit, plus le champ apparaît tôt dans le brief. Correspondance ID → champ :\n\n{mapping}\n\nSi rien ne s'affiche, ajoutez d'abord un champ via le bouton « + Ajouter un sous-élément » sur la page de l'intégration."
       },
       "reorder_categories": {
         "title": "Réordonner les catégories",
-        "description": "Saisissez un numéro d'ordre par catégorie. Plus le numéro est petit, plus la catégorie apparaît tôt. Si rien ne s'affiche, ajoutez d'abord une catégorie via le bouton « + Ajouter un sous-élément »."
+        "description": "Saisissez un numéro d'ordre par catégorie. Plus le numéro est petit, plus la catégorie apparaît tôt. Correspondance ID → catégorie :\n\n{mapping}\n\nSi rien ne s'affiche, ajoutez d'abord une catégorie via le bouton « + Ajouter un sous-élément »."
       },
       "advanced": {
         "title": "Avancé",
@@ -302,7 +302,8 @@
           }
         },
         "provider_params": {
-          "title": "Champ — paramètres du fournisseur"
+          "title": "Champ — paramètres du fournisseur",
+          "description": "{recommendation}"
         },
         "display": {
           "title": "Champ — affichage",

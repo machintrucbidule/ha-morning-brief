@@ -429,6 +429,9 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="reorder_fields",
             data_schema=reorder_fields_schema(self.config_entry),
+            description_placeholders={
+                "mapping": _reorder_label_mapping(self.config_entry, "field"),
+            },
         )
 
     async def async_step_reorder_categories(
@@ -440,6 +443,9 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="reorder_categories",
             data_schema=reorder_categories_schema(self.config_entry),
+            description_placeholders={
+                "mapping": _reorder_label_mapping(self.config_entry, "category"),
+            },
         )
 
     # ------------------------------------------------------------------ #
@@ -496,6 +502,32 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
         return self.async_create_entry(
             title="", data=dict(self.config_entry.options or {})
         )
+
+
+def _reorder_label_mapping(
+    entry: config_entries.ConfigEntry, subentry_type: str
+) -> str:
+    """Build a markdown bullet list mapping subentry_id → human label.
+
+    Voluptuous-openapi renders the schema keys directly (`order__01HR…`)
+    so we surface the subentry_id → label mapping in the step's
+    description so the user can identify which row is which.
+    """
+    from ..subentries import iter_subentries
+
+    lines: list[str] = []
+    for sub in iter_subentries(entry):
+        if getattr(sub, "subentry_type", None) != subentry_type:
+            continue
+        sid = getattr(sub, "subentry_id", None) or getattr(sub, "unique_id", None)
+        if sid is None:
+            continue
+        data = getattr(sub, "data", {}) or {}
+        label = (
+            data.get("label") or getattr(sub, "title", None) or str(sid)
+        )
+        lines.append(f"- `order__{sid}` → **{label}**")
+    return "\n".join(lines) if lines else "_(none yet)_"
 
 
 __all__ = ["MorningBriefOptionsFlow"]

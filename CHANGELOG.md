@@ -6,6 +6,58 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0-rc.8] — 2026-05-16
+
+### Fixed (live-HA pass #6)
+
+- **Category dropdown ENCORE vide dans le field flow.** Le helper
+  `iter_subentries()` du rc.7 marche correctement, mais
+  `_get_entry()` retournait `None` sur certaines configurations HA. Fix:
+  ajout d'un dernier fallback qui prend la première morning_brief entry
+  trouvée (assure que single-instance — le cas commun — voit toujours
+  ses propres catégories).
+- **Reorder labels** affichaient `order__01HR…` au lieu du nom du
+  champ/catégorie. Voluptuous-openapi rend les keys du schema, pas les
+  `description=`. Fix: les step descriptions affichent maintenant un
+  mapping `id → label` en markdown via `description_placeholders`,
+  injecté à l'open du form. L'utilisateur voit "`order__01HR…` →
+  **Sommeil**" et peut éditer en connaissance de cause.
+- **copy_from sans effet sur HA récent.** Logique défensive renforcée:
+  essaie `ConfigSubentry` puis `ConfigSubentryData` puis un dict brut,
+  log à INFO chaque étape (HA Settings → Logs filtrer sur
+  `morning_brief` pour diagnostiquer). Log explicite combien de
+  subentries ont été copiées.
+
+### Added
+
+- **Smart provider_type recommendation.** Le step `provider_params`
+  affiche maintenant le provider recommandé pour l'entité choisie
+  (heuristique sur `state_class` / `device_class` / domain de l'entité).
+  Si l'utilisateur a choisi un type différent du recommandé, un
+  warning ⚠ apparaît avec une suggestion de fermer + recommencer.
+- **DECISIONS.md** : entrée pour le **changement archi D12 → pool
+  partagé** (planifié rc.9). Documentation explicite de pourquoi on
+  passe d'un modèle subentry-par-instance à un pool global avec
+  `applicable_to: list[entry_id]`. Approuvé par utilisateur.
+
+### Process
+
+- G28 (à venir rc.9) : `entry.subentries` model is per-instance and
+  not what the user wants. Migration to a shared pool planned. See
+  DECISIONS.md.
+
+### Changed
+
+- Bump manifest.json version `1.0.0rc7` → `1.0.0rc8`.
+
+### Note
+
+- Le **refactor pool partagé** (entrée DECISIONS.md ci-dessus) est
+  planifié pour rc.9, pas inclus dans rc.8. Le risque de régression
+  d'un refactor de cette taille (8+ fichiers, migration auto) impose
+  son propre cycle. rc.8 corrige les bugs urgents du modèle actuel
+  pour le rendre utilisable en l'attendant.
+
 ## [1.0.0-rc.7] — 2026-05-16
 
 ### Fixed (live-HA pass #5 — root-cause MappingProxyType bug + copy_from + feedback)

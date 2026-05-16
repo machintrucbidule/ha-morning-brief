@@ -258,11 +258,11 @@
       },
       "reorder_fields": {
         "title": "Reorder fields",
-        "description": "Set a display-order number per field. Lower numbers appear first. If nothing shows, add fields first via the \"+ Add sub-item\" button on the integration page."
+        "description": "Set a display-order number per field. Lower numbers appear first. ID → field mapping:\n\n{mapping}\n\nIf nothing shows, add a field first via the \"+ Add sub-item\" button on the integration page."
       },
       "reorder_categories": {
         "title": "Reorder categories",
-        "description": "Set a display-order number per category. Lower numbers appear first. If nothing shows, add a category first via the \"+ Add sub-item\" button."
+        "description": "Set a display-order number per category. Lower numbers appear first. ID → category mapping:\n\n{mapping}\n\nIf nothing shows, add a category first via the \"+ Add sub-item\" button."
       },
       "advanced": {
         "title": "Advanced",
@@ -302,7 +302,8 @@
           }
         },
         "provider_params": {
-          "title": "Field — provider settings"
+          "title": "Field — provider settings",
+          "description": "{recommendation}"
         },
         "display": {
           "title": "Field — display",
