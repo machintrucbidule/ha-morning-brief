@@ -137,9 +137,10 @@ def provider_params_schema(
         )
     if provider_type == PROVIDER_DURATION:
         # Choose how to measure the "since" timestamp:
-        # - input_datetime  → the entity IS the reference timestamp (use input_datetime.* entities directly)
-        # - sensor_last_changed → use the sensor's last_changed metadata
-        # - sensor_attribute_datetime → read a datetime from an attribute of the sensor
+        # - input_datetime → the entity IS the reference timestamp
+        #   (point to an input_datetime.* entity directly).
+        # - sensor_last_changed → use the sensor's last_changed metadata.
+        # - sensor_attribute_datetime → read a datetime from a sensor attribute.
         attribute_selector: Any
         if entity_id:
             attribute_selector = selector.AttributeSelector(
