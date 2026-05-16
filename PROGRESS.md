@@ -133,4 +133,5 @@ Live checklist for the integration repo. Updated continuously. Phases mirror Sec
 - [x] Tag v1.0.0-rc.3 (live-HA UX pass: menu labels, pre-fill, selectors, conditional flow split, device_info, etc. — see CHANGELOG). **CAUTION: rc.3 itself shipped broken code — use rc.4 instead.**
 - [x] Tag v1.0.0-rc.4 (hotfix: 4 CI errors that I let slip through rc.3 by tagging before waiting for CI green; G21 added to prevent recurrence)
 - [x] Tag v1.0.0-rc.5 (live-HA UX pass #3: subentry buttons wiring G22, options picker→param split + factorisation _form_schemas.py, radio buttons mode=LIST, view default prompt, deferred back-nav)
-- [ ] Tag v1.0.0 (after user validates: subentry "+ Add" works, notification fires, card renders, AI degraded mode, history nav)
+- [x] Tag v1.0.0-rc.6 (live-HA UX pass #4: HACS hide_default_branch G24, subentry button labels + entry_type G23, subentry reconfigure G25, field schema rewritten with EntitySelector/AttributeSelector everywhere, copy_from shows instance names, 12 selector translation blocks, test_translations_completeness CI check)
+- [ ] Tag v1.0.0 (after user validates: subentry add/edit works, field selectors work, notification fires, card renders, AI degraded mode, history nav)
