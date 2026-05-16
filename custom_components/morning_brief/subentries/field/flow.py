@@ -23,7 +23,6 @@ from .schema import (
     comparisons_schema,
     display_schema,
     gate_schema,
-    identity_schema,
     provider_params_schema,
     visibility_schema,
 )
@@ -74,44 +73,89 @@ class FieldSubentryFlow(_SubentryBase):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Step 1 — identity (entity_id + provider_type)."""
+        """Step 1a — entity only (the sensor that backs this field).
+
+        After this step we know the entity, so step 1b
+        (``provider_pick``) can offer only the provider types that
+        match the entity's profile and highlight the recommended one.
+        """
+        import voluptuous as vol
+        from homeassistant.helpers import selector
+
         if user_input is not None:
-            self._draft.update(user_input)
-            return await self.async_step_provider_params()
+            self._draft["entity_id"] = user_input["entity_id"]
+            return await self.async_step_provider_pick()
         return self.async_show_form(
-            step_id="user", data_schema=identity_schema(self._draft)
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        "entity_id", default=self._draft.get("entity_id", "")
+                    ): selector.EntitySelector(selector.EntitySelectorConfig()),
+                }
+            ),
+        )
+
+    async def async_step_provider_pick(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Step 1b — provider_type, filtered to types compatible with the entity.
+
+        Per user spec: "First ask for the sensor, then show all the
+        compatible types with a recommendation text". The list is
+        narrowed by ``_compatible_provider_types`` (based on the
+        entity's state_class / device_class / domain) and the heuristic
+        recommendation is shown in the description.
+        """
+        import voluptuous as vol
+        from homeassistant.helpers import selector
+
+        if user_input is not None:
+            self._draft["provider_type"] = user_input["provider_type"]
+            return await self.async_step_provider_params()
+        entity_id = str(self._draft.get("entity_id", ""))
+        compatible = _compatible_provider_types(self.hass, entity_id)
+        recommended = _recommend_provider_type(self.hass, entity_id)
+        rec_msg = (
+            f"💡 **Recommandé pour `{entity_id}` : {recommended}**"
+            if recommended and recommended in compatible
+            else f"_Aucune recommandation automatique pour `{entity_id}`._"
+        )
+        default = (
+            self._draft.get("provider_type")
+            or recommended
+            or (compatible[0] if compatible else "instantaneous")
+        )
+        return self.async_show_form(
+            step_id="provider_pick",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        "provider_type", default=default
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=compatible,
+                            mode=selector.SelectSelectorMode.LIST,
+                            translation_key="provider_type",
+                        )
+                    ),
+                }
+            ),
+            description_placeholders={"recommendation": rec_msg},
         )
 
     async def async_step_provider_params(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Step 2 — provider-specific params.
-
-        Shows a heuristic recommendation in the description (based on
-        the sensor's state_class / device_class / domain) so the user
-        can tell at a glance whether their picked provider_type matches
-        the entity.
-        """
+        """Step 2 — provider-specific params."""
         if user_input is not None:
             self._draft["provider_config"] = user_input
             return await self.async_step_display()
-        picked = str(self._draft.get("provider_type", ""))
-        entity_id = str(self._draft.get("entity_id", ""))
-        recommended = _recommend_provider_type(self.hass, entity_id)
-        rec_msg = (
-            f"Type recommandé pour `{entity_id}` : **{recommended}**"
-            if recommended
-            else f"Aucune recommandation possible pour `{entity_id}` (capteur inconnu)."
-        )
-        if picked and recommended and picked != recommended:
-            rec_msg += (
-                f"\n\n⚠️ Vous avez choisi **{picked}**. Si vous voulez "
-                f"changer, fermez et recommencez (la croix ×)."
-            )
         return self.async_show_form(
             step_id="provider_params",
-            data_schema=provider_params_schema(picked, self._draft),
-            description_placeholders={"recommendation": rec_msg},
+            data_schema=provider_params_schema(
+                str(self._draft.get("provider_type", "")), self._draft
+            ),
         )
 
     async def async_step_display(
@@ -205,13 +249,39 @@ class FieldSubentryFlow(_SubentryBase):
                 self._draft["field_id"] = (
                     label.lower().replace(" ", "_") or "field"
                 )
-            return self.async_create_entry(
-                title=str(self._draft.get("label", "Field")),
-                data=self._draft,
-            )
+            return self._finalise()
         return self.async_show_form(
             step_id="gate", data_schema=gate_schema(self._draft)
         )
+
+    def _finalise(self) -> ConfigFlowResult:
+        """Persist the draft.
+
+        Source ``user`` → create a brand new subentry via
+        ``async_create_entry``.
+        Source ``reconfigure`` → update the existing subentry via
+        ``async_update_and_abort`` (HA raises ValueError on
+        ``async_create_entry`` when called from a reconfigure source).
+        """
+        title = str(self._draft.get("label", "Field"))
+        source = getattr(self, "source", None)
+        if source == "reconfigure":
+            update_and_abort = getattr(self, "async_update_and_abort", None)
+            if update_and_abort is not None:
+                try:
+                    subentry = self._get_reconfigure_subentry()  # type: ignore[attr-defined]
+                except AttributeError:
+                    subentry = None
+                if subentry is not None:
+                    return update_and_abort(
+                        entry=self._get_entry(),
+                        subentry=subentry,
+                        data=self._draft,
+                        title=title,
+                    )
+            # Fallback: abort the flow without updating — user can retry.
+            return self.async_abort(reason="reconfigure_unsupported")
+        return self.async_create_entry(title=title, data=self._draft)
 
     def _get_entry(self) -> config_entries.ConfigEntry | None:
         """Resolve the parent config entry for category lookups.
@@ -265,6 +335,59 @@ class FieldSubentryFlow(_SubentryBase):
         if subentry is not None:
             self._draft = dict(getattr(subentry, "data", {}) or {})
         return await self.async_step_user(user_input)
+
+
+_ALL_PROVIDER_TYPES = [
+    "cumulative",
+    "instantaneous",
+    "event_based",
+    "state",
+    "duration",
+    "calendar",
+    "weather",
+    "manual",
+]
+
+
+def _compatible_provider_types(hass: Any, entity_id: str) -> list[str]:
+    """Return the subset of provider types compatible with the picked entity.
+
+    If the entity is unknown (no state), returns all types (we can't
+    decide). Otherwise filters by domain + state_class + device_class.
+    """
+    if not entity_id:
+        return list(_ALL_PROVIDER_TYPES)
+    state = hass.states.get(entity_id) if hasattr(hass, "states") else None
+    if state is None:
+        return list(_ALL_PROVIDER_TYPES)
+    domain = entity_id.split(".", 1)[0] if "." in entity_id else ""
+    attrs = state.attributes or {}
+    sc = attrs.get("state_class")
+    dc = attrs.get("device_class")
+    if domain == "weather":
+        return ["weather"]
+    if domain == "calendar":
+        return ["calendar"]
+    if domain == "binary_sensor":
+        return ["state"]
+    if domain == "input_number":
+        return ["manual", "instantaneous"]
+    if domain == "input_text":
+        return ["manual", "state"]
+    if domain == "input_datetime":
+        return ["manual", "duration"]
+    # Sensor domain (or other numeric domains)
+    if dc == "timestamp":
+        return ["duration"]
+    try:
+        float(state.state)
+        # Numeric current value
+        if sc in ("total_increasing", "total"):
+            return ["cumulative", "event_based", "instantaneous"]
+        return ["instantaneous", "event_based", "cumulative", "manual"]
+    except (TypeError, ValueError):
+        # Non-numeric state
+        return ["state", "duration"]
 
 
 def _recommend_provider_type(hass: Any, entity_id: str) -> str | None:

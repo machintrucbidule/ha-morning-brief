@@ -258,11 +258,17 @@
       },
       "reorder_fields": {
         "title": "Reorder fields",
-        "description": "Set a display-order number per field. Lower numbers appear first. ID → field mapping:\n\n{mapping}\n\nIf nothing shows, add a field first via the \"+ Add sub-item\" button on the integration page."
+        "description": "Current order:\n\n{current_order}\n\nClick ↑ or ↓ to move a field, then \"💾 Save order\" when done, or \"× Cancel\" to return without saving.",
+        "data": {
+          "action": "Action"
+        }
       },
       "reorder_categories": {
         "title": "Reorder categories",
-        "description": "Set a display-order number per category. Lower numbers appear first. ID → category mapping:\n\n{mapping}\n\nIf nothing shows, add a category first via the \"+ Add sub-item\" button."
+        "description": "Current order:\n\n{current_order}\n\nClick ↑ or ↓ to move a category, then \"💾 Save order\" when done, or \"× Cancel\" to return without saving.",
+        "data": {
+          "action": "Action"
+        }
       },
       "advanced": {
         "title": "Advanced",
@@ -295,15 +301,21 @@
       "entry_type": "Morning Brief field",
       "step": {
         "user": {
-          "title": "Field — source",
+          "title": "Field — entity",
+          "description": "Pick the HA sensor that backs this field. The next step will propose the provider types that match this sensor, with a recommendation.",
           "data": {
-            "entity_id": "Entity",
+            "entity_id": "HA entity"
+          }
+        },
+        "provider_pick": {
+          "title": "Field — provider type",
+          "description": "{recommendation}\n\nPick the type that matches your sensor's behaviour. Only types compatible with the chosen sensor are shown.",
+          "data": {
             "provider_type": "Provider type"
           }
         },
         "provider_params": {
-          "title": "Field — provider settings",
-          "description": "{recommendation}"
+          "title": "Field — provider settings"
         },
         "display": {
           "title": "Field — display",

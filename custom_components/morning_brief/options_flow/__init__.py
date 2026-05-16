@@ -62,7 +62,12 @@ from ..const import (
 from .advanced import advanced_schema, current_prompt_text
 from .notification import notification_schema
 from .persistence import persistence_schema
-from .reorder import reorder_categories_schema, reorder_fields_schema
+from .reorder import (
+    _ordered_list,
+    apply_action,
+    persist_order,
+    reorder_form_schema,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -423,29 +428,83 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
     async def async_step_reorder_fields(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        if user_input is not None:
-            self._save_to_options("reorder_fields", user_input)
-            return await self.async_step_init()
-        return self.async_show_form(
-            step_id="reorder_fields",
-            data_schema=reorder_fields_schema(self.config_entry),
-            description_placeholders={
-                "mapping": _reorder_label_mapping(self.config_entry, "field"),
-            },
-        )
+        return await self._reorder_step("field", "reorder_fields", user_input)
 
     async def async_step_reorder_categories(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        return await self._reorder_step(
+            "category", "reorder_categories", user_input
+        )
+
+    async def _reorder_step(
+        self,
+        subentry_type: str,
+        step_id: str,
+        user_input: dict[str, Any] | None,
+    ) -> ConfigFlowResult:
+        """Shared reorder UX (Section 22.1 — arrow up/down via SelectSelector).
+
+        Stores the working order in ``self._reorder_state_<type>`` between
+        submits so the form re-renders with the swap applied. On ``save``
+        the order is persisted into each subentry via
+        ``hass.config_entries.async_update_subentry``.
+        """
+        state_attr = f"_reorder_state_{subentry_type}"
+        if not hasattr(self, state_attr) or user_input is None and not getattr(
+            self, state_attr, None
+        ):
+            setattr(self, state_attr, _ordered_list(self.config_entry, subentry_type))
+        ordered: list[tuple[str, str, int]] = getattr(self, state_attr)
+
         if user_input is not None:
-            self._save_to_options("reorder_categories", user_input)
-            return await self.async_step_init()
+            action = str(user_input.get("action", ""))
+            if action == "__save__":
+                await persist_order(
+                    self.hass, self.config_entry, ordered, subentry_type
+                )
+                delattr(self, state_attr)
+                return await self.async_step_init()
+            if action == "__cancel__":
+                delattr(self, state_attr)
+                return await self.async_step_init()
+            new_ordered = apply_action(ordered, action)
+            setattr(self, state_attr, new_ordered)
+            ordered = new_ordered
+
+        if not ordered:
+            # Empty state — no items to reorder. Show a form with just
+            # a cancel option so the user can navigate back to the menu.
+            import voluptuous as vol
+
+            return self.async_show_form(
+                step_id=step_id,
+                data_schema=vol.Schema(
+                    {
+                        vol.Required(
+                            "action", default="__cancel__"
+                        ): selector.SelectSelector(
+                            selector.SelectSelectorConfig(
+                                options=[
+                                    selector.SelectOptionDict(
+                                        value="__cancel__", label="× Retour"
+                                    )
+                                ],
+                                mode=selector.SelectSelectorMode.LIST,
+                            )
+                        )
+                    }
+                ),
+                description_placeholders={"current_order": "_(aucun)_"},
+            )
+
+        current_order = "\n".join(
+            f"{i + 1}. **{label}**" for i, (_, label, _) in enumerate(ordered)
+        )
         return self.async_show_form(
-            step_id="reorder_categories",
-            data_schema=reorder_categories_schema(self.config_entry),
-            description_placeholders={
-                "mapping": _reorder_label_mapping(self.config_entry, "category"),
-            },
+            step_id=step_id,
+            data_schema=reorder_form_schema(ordered),
+            description_placeholders={"current_order": current_order},
         )
 
     # ------------------------------------------------------------------ #
@@ -502,32 +561,6 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
         return self.async_create_entry(
             title="", data=dict(self.config_entry.options or {})
         )
-
-
-def _reorder_label_mapping(
-    entry: config_entries.ConfigEntry, subentry_type: str
-) -> str:
-    """Build a markdown bullet list mapping subentry_id → human label.
-
-    Voluptuous-openapi renders the schema keys directly (`order__01HR…`)
-    so we surface the subentry_id → label mapping in the step's
-    description so the user can identify which row is which.
-    """
-    from ..subentries import iter_subentries
-
-    lines: list[str] = []
-    for sub in iter_subentries(entry):
-        if getattr(sub, "subentry_type", None) != subentry_type:
-            continue
-        sid = getattr(sub, "subentry_id", None) or getattr(sub, "unique_id", None)
-        if sid is None:
-            continue
-        data = getattr(sub, "data", {}) or {}
-        label = (
-            data.get("label") or getattr(sub, "title", None) or str(sid)
-        )
-        lines.append(f"- `order__{sid}` → **{label}**")
-    return "\n".join(lines) if lines else "_(none yet)_"
 
 
 __all__ = ["MorningBriefOptionsFlow"]

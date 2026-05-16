@@ -90,10 +90,33 @@ class CategorySubentryFlow(_SubentryBase):
                     user_input.get("display_when_empty", False)
                 ),
             }
-            return self.async_create_entry(title=label, data=data)
+            return self._finalise(title=label, data=data)
         return self.async_show_form(
             step_id="user", data_schema=_category_schema(self._draft)
         )
+
+    def _finalise(self, *, title: str, data: dict[str, Any]) -> ConfigFlowResult:
+        """Source ``user`` → create; source ``reconfigure`` → update."""
+        source = getattr(self, "source", None)
+        if source == "reconfigure":
+            update_and_abort = getattr(self, "async_update_and_abort", None)
+            if update_and_abort is not None:
+                try:
+                    subentry = self._get_reconfigure_subentry()  # type: ignore[attr-defined]
+                except AttributeError:
+                    subentry = None
+                if subentry is not None:
+                    parent = getattr(self, "source_entry", None) or getattr(
+                        self, "config_entry", None
+                    )
+                    return update_and_abort(
+                        entry=parent,
+                        subentry=subentry,
+                        data=data,
+                        title=title,
+                    )
+            return self.async_abort(reason="reconfigure_unsupported")
+        return self.async_create_entry(title=title, data=data)
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None

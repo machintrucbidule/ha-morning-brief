@@ -258,11 +258,17 @@
       },
       "reorder_fields": {
         "title": "Réordonner les champs",
-        "description": "Saisissez un numéro d'ordre par champ. Plus le numéro est petit, plus le champ apparaît tôt dans le brief. Correspondance ID → champ :\n\n{mapping}\n\nSi rien ne s'affiche, ajoutez d'abord un champ via le bouton « + Ajouter un sous-élément » sur la page de l'intégration."
+        "description": "Ordre actuel :\n\n{current_order}\n\nCliquez sur ↑ ou ↓ pour déplacer un champ, puis « 💾 Sauvegarder l'ordre » quand vous êtes satisfait, ou « × Annuler » pour revenir au menu sans enregistrer.",
+        "data": {
+          "action": "Action"
+        }
       },
       "reorder_categories": {
         "title": "Réordonner les catégories",
-        "description": "Saisissez un numéro d'ordre par catégorie. Plus le numéro est petit, plus la catégorie apparaît tôt. Correspondance ID → catégorie :\n\n{mapping}\n\nSi rien ne s'affiche, ajoutez d'abord une catégorie via le bouton « + Ajouter un sous-élément »."
+        "description": "Ordre actuel :\n\n{current_order}\n\nCliquez sur ↑ ou ↓ pour déplacer une catégorie, puis « 💾 Sauvegarder l'ordre » quand vous êtes satisfait, ou « × Annuler » pour revenir au menu sans enregistrer.",
+        "data": {
+          "action": "Action"
+        }
       },
       "advanced": {
         "title": "Avancé",
@@ -295,15 +301,21 @@
       "entry_type": "Champ Morning Brief",
       "step": {
         "user": {
-          "title": "Champ — source",
+          "title": "Champ — entité",
+          "description": "Choisissez le capteur HA qui alimente ce champ. La prochaine étape proposera les types de fournisseur compatibles avec ce capteur, avec une recommandation.",
           "data": {
-            "entity_id": "Entité",
+            "entity_id": "Entité HA"
+          }
+        },
+        "provider_pick": {
+          "title": "Champ — type de fournisseur",
+          "description": "{recommendation}\n\nSélectionnez le type qui correspond au comportement de votre capteur. Seuls les types compatibles avec le capteur choisi sont affichés.",
+          "data": {
             "provider_type": "Type de fournisseur"
           }
         },
         "provider_params": {
-          "title": "Champ — paramètres du fournisseur",
-          "description": "{recommendation}"
+          "title": "Champ — paramètres du fournisseur"
         },
         "display": {
           "title": "Champ — affichage",
