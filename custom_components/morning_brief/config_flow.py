@@ -535,13 +535,18 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @classmethod
     def async_get_supported_subentry_types(
         cls, config_entry: config_entries.ConfigEntry
-    ) -> dict[str, type]:
+    ) -> dict[str, Any]:
         """Expose the subentry flow handlers to HA's UI.
 
         Without this classmethod, HA reads `manifest.json
         supported_subentry_types` but has no mapping to the actual flow
         classes — the "+ Add sub-item" buttons never appear on the
         integration's device page (G22). Required since HA Core ≥ 2024.11.
+
+        Return type is ``dict[str, Any]`` rather than the more precise
+        ``dict[str, type[ConfigSubentryFlow]]`` because ``ConfigSubentryFlow``
+        is not exposed on HA Core < 2024.11 and we keep a defensive
+        TYPE_CHECKING shim in the subentry flow modules.
         """
         from .subentries import SUBENTRY_FLOWS
 
