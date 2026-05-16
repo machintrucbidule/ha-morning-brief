@@ -215,7 +215,7 @@ async def _maybe_copy_subentries(hass: HomeAssistant, entry: ConfigEntry) -> Non
             sub_type = getattr(sub, "subentry_type", None) or ""
             if sub_type not in ("field", "category"):
                 continue
-            payload = ConfigSubentryData(  # type: ignore[call-arg]
+            payload = ConfigSubentryData(
                 data=dict(getattr(sub, "data", {}) or {}),
                 subentry_type=sub_type,
                 title=str(getattr(sub, "title", "") or ""),
