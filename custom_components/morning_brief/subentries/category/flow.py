@@ -109,7 +109,7 @@ class CategorySubentryFlow(_SubentryBase):
                     parent = getattr(self, "source_entry", None) or getattr(
                         self, "config_entry", None
                     )
-                    return update_and_abort(
+                    return update_and_abort(  # type: ignore[no-any-return]
                         entry=parent,
                         subentry=subentry,
                         data=data,

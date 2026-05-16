@@ -49,10 +49,12 @@ async def test_setup_creates_sensors_and_buttons(hass: HomeAssistant) -> None:
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    # Two sensors + two buttons per the spec.
+    # Three instance-level sensors (main + status + markdown) + two
+    # buttons. Plus one sensor per configured field — the test fixture
+    # adds none, so total = 3 sensors.
     sensor_states = [s for s in hass.states.async_all() if s.domain == "sensor"]
     button_states = [s for s in hass.states.async_all() if s.domain == "button"]
-    assert len(sensor_states) == 2
+    assert len(sensor_states) == 3
     assert len(button_states) == 2
 
 

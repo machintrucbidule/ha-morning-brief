@@ -273,7 +273,7 @@ class FieldSubentryFlow(_SubentryBase):
                 except AttributeError:
                     subentry = None
                 if subentry is not None:
-                    return update_and_abort(
+                    return update_and_abort(  # type: ignore[no-any-return]
                         entry=self._get_entry(),
                         subentry=subentry,
                         data=self._draft,

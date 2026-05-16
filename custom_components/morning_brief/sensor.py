@@ -90,7 +90,7 @@ def _find_field_in_brief(
     for category in brief.get("categories", []) or []:
         for field in category.get("fields", []) or []:
             if str(field.get("field_id") or field.get("id") or "") == field_id:
-                return field
+                return field  # type: ignore[no-any-return]
     return None
 
 
