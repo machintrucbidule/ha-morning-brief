@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import voluptuous as vol
+from homeassistant.helpers import selector
 
 from ..const import (
     DEFAULT_CUTOFF_HOUR,
@@ -14,23 +15,43 @@ from ..const import (
 )
 
 
-def logical_day_schema(current: dict[str, Any]) -> vol.Schema:
-    prev = current.get("logical_day", {})
+def logical_day_schema(initial: dict[str, Any]) -> vol.Schema:
     return vol.Schema(
         {
+            vol.Required(
+                "strategy", default=initial.get("strategy", LOGICAL_DAY_FIXED_CUTOFF)
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=list(LOGICAL_DAY_STRATEGIES),
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                    translation_key="logical_day_strategy",
+                )
+            ),
             vol.Optional(
-                "strategy", default=prev.get("strategy", LOGICAL_DAY_FIXED_CUTOFF)
-            ): vol.In(list(LOGICAL_DAY_STRATEGIES)),
+                "cutoff_hour", default=initial.get("cutoff_hour", DEFAULT_CUTOFF_HOUR)
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0, max=23, step=1, mode=selector.NumberSelectorMode.BOX
+                )
+            ),
             vol.Optional(
-                "cutoff_hour", default=prev.get("cutoff_hour", DEFAULT_CUTOFF_HOUR)
-            ): vol.All(int, vol.Range(min=0, max=23)),
+                "sleep_sensor_entity",
+                default=initial.get("sleep_sensor_entity", ""),
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="binary_sensor")
+            ),
             vol.Optional(
-                "sleep_sensor_entity", default=prev.get("sleep_sensor_entity", "")
-            ): str,
-            vol.Optional("awake_state", default=prev.get("awake_state", "off")): str,
+                "awake_state", default=initial.get("awake_state", "off")
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+            ),
             vol.Optional(
                 "hard_fallback_hour",
-                default=prev.get("hard_fallback_hour", DEFAULT_HARD_FALLBACK_HOUR),
-            ): vol.All(int, vol.Range(min=0, max=23)),
+                default=initial.get("hard_fallback_hour", DEFAULT_HARD_FALLBACK_HOUR),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0, max=23, step=1, mode=selector.NumberSelectorMode.BOX
+                )
+            ),
         }
     )

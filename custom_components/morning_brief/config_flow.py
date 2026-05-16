@@ -1,22 +1,26 @@
-# rationale: the 6-step initial config flow per MORNING_BRIEF_SPEC.md
-# Section 19 is naturally cohesive — each step branches conditionally
-# off the report_type / strategy / trigger / ai_provider choice. Splitting
-# would scatter the assembled `_draft` state across files.
+# rationale: ~330 LOC because each branch step has its own per-strategy
+# / per-trigger-level / per-provider form. Splitting would scatter the
+# accumulated `_draft` state across many small files without clarity gain.
 """Initial config flow for the morning_brief integration.
 
-See MORNING_BRIEF_SPEC.md Section 19. Six linear steps:
+See MORNING_BRIEF_SPEC.md Section 19.
 
-1. ``user`` — choose report_type (morning / evening / weekly).
+The flow is structured as N visible steps, with branching steps:
+
+1. ``user`` — choose report_type.
 2. ``name_lang`` — instance name + language.
-3. ``logical_day`` — strategy + params (morning only; skipped otherwise).
-4. ``trigger`` — trigger level + params.
-5. ``ai`` — AI provider type + credentials.
-6. ``copy_from`` — optional one-shot copy of fields/categories from an
-   existing instance.
+3. ``logical_day_strategy`` — strategy enum picker (morning only).
+4. ``logical_day_<strategy>`` — params for the chosen strategy.
+5. ``trigger_level`` — trigger level enum picker.
+6. ``trigger_<level>`` — params for the chosen trigger level.
+7. ``ai_provider`` — AI provider enum picker.
+8. ``ai_<provider>`` — credentials for the chosen provider.
+9. ``copy_from`` — optional one-shot copy of fields/categories.
 
-The flow accumulates a `_draft` dict and creates the config entry on the
-final step. Subentries (fields + categories) are added afterwards by
-the user via the native HA subentry UI (Phase 8 also ships those flows).
+Splitting the enum picker from the param form means each form only
+shows fields that are actually relevant — addressing the original UX
+bug where the unified "all-fields" form showed inputs that depended on
+a choice made on the same screen.
 """
 
 from __future__ import annotations
@@ -27,6 +31,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.helpers import selector
 
 from .const import (
     AI_PROVIDER_ANTHROPIC_DIRECT,
@@ -43,6 +48,7 @@ from .const import (
     DEFAULT_SENSOR_BASED_DELAY_MINUTES,
     DOMAIN,
     LOGICAL_DAY_FIXED_CUTOFF,
+    LOGICAL_DAY_MANUAL,
     LOGICAL_DAY_SLEEP_SENSOR,
     LOGICAL_DAY_STRATEGIES,
     REPORT_TYPE_MORNING,
@@ -57,125 +63,42 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def _trigger_schema(trigger_level: str) -> vol.Schema:
-    """Build the voluptuous schema for the chosen trigger level.
-
-    All schemas allow extra keys (``vol.REMOVE_EXTRA``): the conditional
-    one-screen forms ship the union of fields, and we only keep what's
-    relevant per the chosen enum.
-    """
-    if trigger_level == TRIGGER_SCHEDULE:
-        return vol.Schema(
-            {
-                vol.Required("time", default="07:30"): vol.Match(r"^\d{1,2}:\d{2}$"),
-                vol.Optional("days_of_week", default=list(range(7))): [
-                    vol.All(int, vol.Range(min=0, max=6))
-                ],
-            },
-            extra=vol.REMOVE_EXTRA,
-        )
-    if trigger_level == TRIGGER_SENSOR_BASED:
-        return vol.Schema(
-            {
-                vol.Required("trigger_entity_id"): str,
-                vol.Required("trigger_to_state"): str,
-                vol.Optional(
-                    "delay_minutes", default=DEFAULT_SENSOR_BASED_DELAY_MINUTES
-                ): vol.All(int, vol.Range(min=0)),
-                vol.Optional("optout_entities", default=list): [str],
-                vol.Optional(
-                    "fallback_hour", default=DEFAULT_FALLBACK_HOUR
-                ): vol.All(int, vol.Range(min=0, max=23)),
-                vol.Optional("fallback_active", default=True): bool,
-            },
-            extra=vol.REMOVE_EXTRA,
-        )
-    return vol.Schema({}, extra=vol.REMOVE_EXTRA)
-
-
-def _logical_day_schema(strategy: str) -> vol.Schema:
-    if strategy == LOGICAL_DAY_FIXED_CUTOFF:
-        return vol.Schema(
-            {
-                vol.Optional("cutoff_hour", default=DEFAULT_CUTOFF_HOUR): vol.All(
-                    int, vol.Range(min=0, max=23)
-                ),
-            },
-            extra=vol.REMOVE_EXTRA,
-        )
-    if strategy == LOGICAL_DAY_SLEEP_SENSOR:
-        return vol.Schema(
-            {
-                vol.Required("sleep_sensor_entity"): str,
-                vol.Optional("awake_state", default="off"): str,
-                vol.Optional(
-                    "hard_fallback_hour", default=DEFAULT_HARD_FALLBACK_HOUR
-                ): vol.All(int, vol.Range(min=0, max=23)),
-                vol.Optional("lookback_hours", default=DEFAULT_LOOKBACK_HOURS): vol.All(
-                    int, vol.Range(min=1, max=72)
-                ),
-                vol.Optional(
-                    "min_sleep_duration_minutes",
-                    default=DEFAULT_MIN_SLEEP_DURATION_MINUTES,
-                ): vol.All(int, vol.Range(min=0)),
-            },
-            extra=vol.REMOVE_EXTRA,
-        )
-    return vol.Schema({}, extra=vol.REMOVE_EXTRA)
-
-
-def _ai_schema(provider_type: str) -> vol.Schema:
-    if provider_type == AI_PROVIDER_HA_AI_TASK:
-        return vol.Schema(
-            {vol.Required("entity_id"): str}, extra=vol.REMOVE_EXTRA
-        )
-    if provider_type == AI_PROVIDER_ANTHROPIC_DIRECT:
-        return vol.Schema(
-            {
-                vol.Required("api_key"): str,
-                vol.Optional("model", default="claude-sonnet-4-7"): str,
-            },
-            extra=vol.REMOVE_EXTRA,
-        )
-    if provider_type == AI_PROVIDER_OPENAI_DIRECT:
-        return vol.Schema(
-            {
-                vol.Required("api_key"): str,
-                vol.Optional("model", default="gpt-4o-mini"): str,
-            },
-            extra=vol.REMOVE_EXTRA,
-        )
-    return vol.Schema({}, extra=vol.REMOVE_EXTRA)
-
-
 class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Six-step flow that produces a `morning_brief` config entry."""
+    """Multi-step flow that produces a `morning_brief` config entry."""
 
     VERSION = 1
 
     def __init__(self) -> None:
-        """Initialise an empty draft."""
         self._draft: dict[str, Any] = {}
 
-    # ------------------------------------------------------------------- #
+    # ------------------------------------------------------------------ #
     # Step 1 — Report type
-    # ------------------------------------------------------------------- #
+    # ------------------------------------------------------------------ #
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Initial step: choose report_type."""
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         if user_input is not None:
             self._draft["report_type"] = user_input["report_type"]
             return await self.async_step_name_lang()
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
-                {vol.Required("report_type"): vol.In(list(REPORT_TYPES))}
+                {
+                    vol.Required("report_type"): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=list(REPORT_TYPES),
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            translation_key="report_type",
+                        )
+                    ),
+                }
             ),
         )
 
-    # ------------------------------------------------------------------- #
+    # ------------------------------------------------------------------ #
     # Step 2 — Name + language
-    # ------------------------------------------------------------------- #
+    # ------------------------------------------------------------------ #
 
     async def async_step_name_lang(
         self, user_input: dict[str, Any] | None = None
@@ -184,149 +107,373 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._draft["instance_name"] = user_input["instance_name"]
             self._draft["language"] = user_input["language"]
             if self._draft["report_type"] == REPORT_TYPE_MORNING:
-                return await self.async_step_logical_day()
-            return await self.async_step_trigger()
+                return await self.async_step_logical_day_strategy()
+            return await self.async_step_trigger_level()
         return self.async_show_form(
             step_id="name_lang",
             data_schema=vol.Schema(
                 {
-                    vol.Required("instance_name"): str,
-                    vol.Optional(
+                    vol.Required("instance_name"): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.TEXT
+                        )
+                    ),
+                    vol.Required(
                         "language",
                         default=str(self.hass.config.language or DEFAULT_LANGUAGE),
-                    ): vol.In(list(SUPPORTED_LANGUAGES)),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=list(SUPPORTED_LANGUAGES),
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            translation_key="language",
+                        )
+                    ),
                 }
             ),
         )
 
-    # ------------------------------------------------------------------- #
-    # Step 3 — Logical day strategy (morning only)
-    # ------------------------------------------------------------------- #
+    # ------------------------------------------------------------------ #
+    # Step 3 — Logical-day strategy picker (morning only)
+    # ------------------------------------------------------------------ #
 
-    async def async_step_logical_day(
+    async def async_step_logical_day_strategy(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        if user_input is not None and "strategy" in user_input:
+        if user_input is not None:
             strategy = user_input["strategy"]
-            # On the second submit, validate the strategy-specific params.
-            params = {k: v for k, v in user_input.items() if k != "strategy"}
-            try:
-                params = _logical_day_schema(strategy)(params)
-            except vol.Invalid as err:
-                return self.async_show_form(
-                    step_id="logical_day",
-                    data_schema=self._logical_day_form_schema(strategy),
-                    errors={"base": str(err)},
-                )
-            self._draft["logical_day"] = {"strategy": strategy, "config": params}
-            return await self.async_step_trigger()
+            self._draft["_logical_day_strategy_choice"] = strategy
+            if strategy == LOGICAL_DAY_FIXED_CUTOFF:
+                return await self.async_step_logical_day_fixed_cutoff()
+            if strategy == LOGICAL_DAY_SLEEP_SENSOR:
+                return await self.async_step_logical_day_sleep_sensor()
+            # manual has no params
+            self._draft["logical_day"] = {"strategy": LOGICAL_DAY_MANUAL, "config": {}}
+            return await self.async_step_trigger_level()
         return self.async_show_form(
-            step_id="logical_day",
-            data_schema=self._logical_day_form_schema(LOGICAL_DAY_FIXED_CUTOFF),
-        )
-
-    @staticmethod
-    def _logical_day_form_schema(default_strategy: str) -> vol.Schema:
-        """One screen with strategy + all-possible params (validated conditionally)."""
-        return vol.Schema(
-            {
-                vol.Required("strategy", default=default_strategy): vol.In(
-                    list(LOGICAL_DAY_STRATEGIES)
-                ),
-                vol.Optional("cutoff_hour", default=DEFAULT_CUTOFF_HOUR): vol.All(
-                    int, vol.Range(min=0, max=23)
-                ),
-                vol.Optional("sleep_sensor_entity", default=""): str,
-                vol.Optional("awake_state", default="off"): str,
-                vol.Optional(
-                    "hard_fallback_hour", default=DEFAULT_HARD_FALLBACK_HOUR
-                ): vol.All(int, vol.Range(min=0, max=23)),
-                vol.Optional("lookback_hours", default=DEFAULT_LOOKBACK_HOURS): vol.All(
-                    int, vol.Range(min=1, max=72)
-                ),
-                vol.Optional(
-                    "min_sleep_duration_minutes",
-                    default=DEFAULT_MIN_SLEEP_DURATION_MINUTES,
-                ): vol.All(int, vol.Range(min=0)),
-            }
-        )
-
-    # ------------------------------------------------------------------- #
-    # Step 4 — Trigger
-    # ------------------------------------------------------------------- #
-
-    async def async_step_trigger(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        if user_input is not None and "trigger_level" in user_input:
-            level = user_input["trigger_level"]
-            params = {k: v for k, v in user_input.items() if k != "trigger_level"}
-            if level == TRIGGER_EXTERNAL:
-                params = {}
-            self._draft["trigger"] = {"level": level, "config": params}
-            return await self.async_step_ai()
-        return self.async_show_form(
-            step_id="trigger",
+            step_id="logical_day_strategy",
             data_schema=vol.Schema(
                 {
-                    vol.Required("trigger_level", default=TRIGGER_SCHEDULE): vol.In(
-                        list(TRIGGER_LEVELS)
-                    ),
-                    vol.Optional("time", default="07:30"): str,
-                    vol.Optional("trigger_entity_id", default=""): str,
-                    vol.Optional("trigger_to_state", default="off"): str,
-                    vol.Optional(
-                        "delay_minutes", default=DEFAULT_SENSOR_BASED_DELAY_MINUTES
-                    ): vol.All(int, vol.Range(min=0)),
-                    vol.Optional("fallback_hour", default=DEFAULT_FALLBACK_HOUR): vol.All(
-                        int, vol.Range(min=0, max=23)
+                    vol.Required(
+                        "strategy", default=LOGICAL_DAY_FIXED_CUTOFF
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=list(LOGICAL_DAY_STRATEGIES),
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            translation_key="logical_day_strategy",
+                        )
                     ),
                 }
             ),
         )
 
-    # ------------------------------------------------------------------- #
-    # Step 5 — AI provider
-    # ------------------------------------------------------------------- #
-
-    async def async_step_ai(
+    async def async_step_logical_day_fixed_cutoff(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        if user_input is not None and "ai_provider_type" in user_input:
-            ptype = user_input["ai_provider_type"]
-            cfg: dict[str, Any] = {k: v for k, v in user_input.items() if k != "ai_provider_type"}
-            try:
-                cfg = _ai_schema(ptype)(
-                    {k: v for k, v in cfg.items() if v not in (None, "")}
-                )
-            except vol.Invalid as err:
-                return self.async_show_form(
-                    step_id="ai",
-                    data_schema=self._ai_form_schema(),
-                    errors={"base": str(err)},
-                )
-            self._draft["ai"] = {"provider_type": ptype, "config": cfg}
+        if user_input is not None:
+            self._draft["logical_day"] = {
+                "strategy": LOGICAL_DAY_FIXED_CUTOFF,
+                "config": dict(user_input),
+            }
+            return await self.async_step_trigger_level()
+        return self.async_show_form(
+            step_id="logical_day_fixed_cutoff",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        "cutoff_hour", default=DEFAULT_CUTOFF_HOUR
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=0,
+                            max=23,
+                            step=1,
+                            mode=selector.NumberSelectorMode.BOX,
+                        )
+                    ),
+                }
+            ),
+        )
+
+    async def async_step_logical_day_sleep_sensor(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            self._draft["logical_day"] = {
+                "strategy": LOGICAL_DAY_SLEEP_SENSOR,
+                "config": dict(user_input),
+            }
+            return await self.async_step_trigger_level()
+        return self.async_show_form(
+            step_id="logical_day_sleep_sensor",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("sleep_sensor_entity"): selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="binary_sensor")
+                    ),
+                    vol.Optional(
+                        "awake_state", default="off"
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.TEXT
+                        )
+                    ),
+                    vol.Optional(
+                        "hard_fallback_hour", default=DEFAULT_HARD_FALLBACK_HOUR
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=0, max=23, step=1, mode=selector.NumberSelectorMode.BOX
+                        )
+                    ),
+                    vol.Optional(
+                        "lookback_hours", default=DEFAULT_LOOKBACK_HOURS
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=1, max=72, step=1, mode=selector.NumberSelectorMode.BOX
+                        )
+                    ),
+                    vol.Optional(
+                        "min_sleep_duration_minutes",
+                        default=DEFAULT_MIN_SLEEP_DURATION_MINUTES,
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=0, max=600, step=1, mode=selector.NumberSelectorMode.BOX
+                        )
+                    ),
+                }
+            ),
+        )
+
+    # ------------------------------------------------------------------ #
+    # Step 4 — Trigger-level picker
+    # ------------------------------------------------------------------ #
+
+    async def async_step_trigger_level(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            level = user_input["trigger_level"]
+            self._draft["_trigger_level_choice"] = level
+            if level == TRIGGER_SCHEDULE:
+                return await self.async_step_trigger_schedule()
+            if level == TRIGGER_SENSOR_BASED:
+                return await self.async_step_trigger_sensor_based()
+            # external — no params
+            self._draft["trigger"] = {"level": TRIGGER_EXTERNAL, "config": {}}
+            return await self.async_step_ai_provider()
+        return self.async_show_form(
+            step_id="trigger_level",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        "trigger_level", default=TRIGGER_SCHEDULE
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=list(TRIGGER_LEVELS),
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            translation_key="trigger_level",
+                        )
+                    ),
+                }
+            ),
+        )
+
+    async def async_step_trigger_schedule(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            self._draft["trigger"] = {
+                "level": TRIGGER_SCHEDULE,
+                "config": dict(user_input),
+            }
+            return await self.async_step_ai_provider()
+        return self.async_show_form(
+            step_id="trigger_schedule",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("time", default="07:30"): selector.TimeSelector(),
+                    vol.Optional(
+                        "days_of_week", default=list(range(7))
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[
+                                {"value": "0", "label": "Mon"},
+                                {"value": "1", "label": "Tue"},
+                                {"value": "2", "label": "Wed"},
+                                {"value": "3", "label": "Thu"},
+                                {"value": "4", "label": "Fri"},
+                                {"value": "5", "label": "Sat"},
+                                {"value": "6", "label": "Sun"},
+                            ],
+                            multiple=True,
+                            mode=selector.SelectSelectorMode.LIST,
+                        )
+                    ),
+                }
+            ),
+        )
+
+    async def async_step_trigger_sensor_based(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            self._draft["trigger"] = {
+                "level": TRIGGER_SENSOR_BASED,
+                "config": dict(user_input),
+            }
+            return await self.async_step_ai_provider()
+        return self.async_show_form(
+            step_id="trigger_sensor_based",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("trigger_entity_id"): selector.EntitySelector(
+                        selector.EntitySelectorConfig()
+                    ),
+                    vol.Required(
+                        "trigger_to_state", default="off"
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.TEXT
+                        )
+                    ),
+                    vol.Optional(
+                        "delay_minutes",
+                        default=DEFAULT_SENSOR_BASED_DELAY_MINUTES,
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=0, max=240, step=1, mode=selector.NumberSelectorMode.BOX
+                        )
+                    ),
+                    vol.Optional(
+                        "fallback_hour", default=DEFAULT_FALLBACK_HOUR
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=0, max=23, step=1, mode=selector.NumberSelectorMode.BOX
+                        )
+                    ),
+                    vol.Optional(
+                        "fallback_active", default=True
+                    ): selector.BooleanSelector(),
+                }
+            ),
+        )
+
+    # ------------------------------------------------------------------ #
+    # Step 5 — AI provider picker
+    # ------------------------------------------------------------------ #
+
+    async def async_step_ai_provider(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            provider = user_input["ai_provider_type"]
+            self._draft["_ai_provider_choice"] = provider
+            if provider == AI_PROVIDER_DISABLED:
+                self._draft["ai"] = {"provider_type": AI_PROVIDER_DISABLED, "config": {}}
+                return await self.async_step_copy_from()
+            if provider == AI_PROVIDER_HA_AI_TASK:
+                return await self.async_step_ai_ha_ai_task()
+            if provider == AI_PROVIDER_ANTHROPIC_DIRECT:
+                return await self.async_step_ai_anthropic()
+            if provider == AI_PROVIDER_OPENAI_DIRECT:
+                return await self.async_step_ai_openai()
             return await self.async_step_copy_from()
         return self.async_show_form(
-            step_id="ai", data_schema=self._ai_form_schema()
+            step_id="ai_provider",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        "ai_provider_type", default=AI_PROVIDER_DISABLED
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=list(AI_PROVIDER_TYPES),
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            translation_key="ai_provider_type",
+                        )
+                    ),
+                }
+            ),
         )
 
-    @staticmethod
-    def _ai_form_schema() -> vol.Schema:
-        return vol.Schema(
-            {
-                vol.Required("ai_provider_type", default=AI_PROVIDER_DISABLED): vol.In(
-                    list(AI_PROVIDER_TYPES)
-                ),
-                vol.Optional("entity_id", default=""): str,
-                vol.Optional("api_key", default=""): str,
-                vol.Optional("model", default=""): str,
+    async def async_step_ai_ha_ai_task(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            self._draft["ai"] = {
+                "provider_type": AI_PROVIDER_HA_AI_TASK,
+                "config": dict(user_input),
             }
+            return await self.async_step_copy_from()
+        return self.async_show_form(
+            step_id="ai_ha_ai_task",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("entity_id"): selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="ai_task")
+                    ),
+                }
+            ),
         )
 
-    # ------------------------------------------------------------------- #
-    # Step 6 — Copy from existing
-    # ------------------------------------------------------------------- #
+    async def async_step_ai_anthropic(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            self._draft["ai"] = {
+                "provider_type": AI_PROVIDER_ANTHROPIC_DIRECT,
+                "config": dict(user_input),
+            }
+            return await self.async_step_copy_from()
+        return self.async_show_form(
+            step_id="ai_anthropic",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("api_key"): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.PASSWORD
+                        )
+                    ),
+                    vol.Optional(
+                        "model", default="claude-sonnet-4-6"
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.TEXT
+                        )
+                    ),
+                }
+            ),
+        )
+
+    async def async_step_ai_openai(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            self._draft["ai"] = {
+                "provider_type": AI_PROVIDER_OPENAI_DIRECT,
+                "config": dict(user_input),
+            }
+            return await self.async_step_copy_from()
+        return self.async_show_form(
+            step_id="ai_openai",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("api_key"): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.PASSWORD
+                        )
+                    ),
+                    vol.Optional(
+                        "model", default="gpt-4o-mini"
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.TEXT
+                        )
+                    ),
+                }
+            ),
+        )
+
+    # ------------------------------------------------------------------ #
+    # Step 6 — Copy from existing instance
+    # ------------------------------------------------------------------ #
 
     async def async_step_copy_from(
         self, user_input: dict[str, Any] | None = None
@@ -339,6 +486,10 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if copy_id == "_none_":
                 copy_id = None
             self._draft["copy_from_instance"] = copy_id
+            # Strip the choice markers we used as ephemeral state.
+            self._draft.pop("_logical_day_strategy_choice", None)
+            self._draft.pop("_trigger_level_choice", None)
+            self._draft.pop("_ai_provider_choice", None)
             return self.async_create_entry(
                 title=str(self._draft["instance_name"]), data=self._draft
             )
@@ -349,14 +500,19 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Optional(
                         "copy_from_instance", default="_none_"
-                    ): vol.In(choices),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=choices,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
                 }
             ),
         )
 
-    # ------------------------------------------------------------------- #
+    # ------------------------------------------------------------------ #
     # Options flow registration
-    # ------------------------------------------------------------------- #
+    # ------------------------------------------------------------------ #
 
     @staticmethod
     def async_get_options_flow(

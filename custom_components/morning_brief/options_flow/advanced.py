@@ -5,28 +5,41 @@ from __future__ import annotations
 from typing import Any
 
 import voluptuous as vol
+from homeassistant.helpers import selector
 
 _LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
 
 
-def advanced_schema(current: dict[str, Any]) -> vol.Schema:
-    prev = current.get("advanced", {})
+def advanced_schema(initial: dict[str, Any]) -> vol.Schema:
     return vol.Schema(
         {
-            vol.Optional(
-                "log_level", default=prev.get("log_level", "INFO")
-            ): vol.In(list(_LOG_LEVELS)),
+            vol.Required(
+                "log_level", default=initial.get("log_level", "INFO")
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=list(_LOG_LEVELS),
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
             vol.Optional(
                 "prompt_template_override",
-                default=prev.get("prompt_template_override", ""),
-            ): str,
+                default=initial.get("prompt_template_override", ""),
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(
+                    type=selector.TextSelectorType.TEXT, multiline=True
+                )
+            ),
             vol.Optional(
                 "user_custom_context",
-                default=prev.get("user_custom_context", ""),
-            ): str,
-            vol.Optional(
+                default=initial.get("user_custom_context", ""),
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(
+                    type=selector.TextSelectorType.TEXT, multiline=True
+                )
+            ),
+            vol.Required(
                 "expose_preview_service",
-                default=prev.get("expose_preview_service", True),
-            ): bool,
+                default=initial.get("expose_preview_service", True),
+            ): selector.BooleanSelector(),
         }
     )

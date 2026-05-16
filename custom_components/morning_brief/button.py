@@ -10,6 +10,7 @@ from __future__ import annotations
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -38,6 +39,13 @@ class _CoordinatorButton(CoordinatorEntity[MorningBriefCoordinator], ButtonEntit
         """Bind to the coordinator and label the entity."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.entry_id}_button_{suffix}"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, coordinator.entry_id)},
+            name=coordinator.instance_name or "Morning Brief",
+            manufacturer="Morning Brief",
+            model=coordinator.report_type,
+            entry_type=None,
+        )
 
 
 class MorningBriefGenerateButton(_CoordinatorButton):

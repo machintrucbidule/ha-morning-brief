@@ -6,6 +6,63 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0-rc.3] — 2026-05-16
+
+### Fixed (live-HA install pass on rc.2)
+
+- **Menu Options sans labels** — les boutons du menu principal s'affichaient
+  vides. Ajout de `options.step.init.menu_options` dans les translations
+  FR + EN (incluant une entrée « Done » pour fermer proprement).
+- **Valeurs actuelles non pré-remplies dans Options** — les schémas
+  lisaient `entry.options` (vide à la première ouverture), pas `entry.data`
+  qui porte la config initiale. Réécriture du flow pour que chaque section
+  reconstruise ses initial values depuis `entry.data` (general /
+  logical_day / trigger / ai) ou `entry.options` (notification /
+  persistence / advanced / reorder_*).
+- **Modifications Options non prises en compte par le runtime** — les
+  sections qui mirrorent le config_flow initial (general, logical_day,
+  trigger) écrivent maintenant directement dans `entry.data` via
+  `async_update_entry`, pas dans `entry.options` que le coordinator
+  ignorait largement. Conséquence: le runtime voit immédiatement les
+  modifs sans changement coordinator.
+- **Notification 4ème menu → popup « Erreur » vide** — le schéma
+  `notification_pinned_fields: [str]` cassait voluptuous-openapi.
+  Remplacé par un `TextSelector` simple (le user entre des IDs séparés
+  par virgule).
+- **Champs sensor en texte libre** — tous les champs qui désignent une
+  entité HA utilisent maintenant `selector.EntitySelector` (filtré par
+  domain): sleep_sensor_entity, trigger_entity_id, ai_entity_id. Idem
+  TimeSelector pour les heures, NumberSelector pour les nombres,
+  BooleanSelector pour les bools.
+- **Création d'instance: champs hors-contexte affichés** — les steps
+  unifiés `logical_day`, `trigger`, `ai` du config_flow montraient tous
+  les paramètres possibles avec un picker d'enum sur la même page. Split
+  en steps successifs: enum picker puis param step propre à l'enum
+  choisi. Nouveaux step IDs: `logical_day_strategy`,
+  `logical_day_fixed_cutoff`, `logical_day_sleep_sensor`,
+  `trigger_level`, `trigger_schedule`, `trigger_sensor_based`,
+  `ai_provider`, `ai_ha_ai_task`, `ai_anthropic`, `ai_openai`.
+- **Pas de "retour" entre sections Options** — chaque save de section
+  re-affiche le menu init au lieu de fermer le dialog. Le user fait
+  "Done" pour fermer.
+- **Reorder vide sans explication** — la description du step explique
+  désormais qu'il faut d'abord créer des fields/cats via "+ Ajouter un
+  sous-élément".
+- **Menu Avancé sans descriptions** — `data_description` détaillées pour
+  log_level, prompt_template_override, user_custom_context,
+  expose_preview_service.
+- **Boutons Generate/Preview sans device** — les entities n'avaient pas
+  de `device_info`. Conséquence: HA ne les attachait à aucun appareil et
+  ne les listait pas sur la page de l'intégration. Ajout d'un
+  `DeviceInfo` partagé entre sensor.py et button.py qui crée un appareil
+  unique par instance morning_brief.
+- **Workflow CI mal nommé** — `test.yml` renommé en `tests.yml` pour que
+  le badge README pointe sur le bon endpoint GitHub Actions.
+
+### Changed
+
+- Bump manifest.json version `1.0.0rc2` → `1.0.0rc3`.
+
 ## [1.0.0-rc.2] — 2026-05-15
 
 ### Fixed

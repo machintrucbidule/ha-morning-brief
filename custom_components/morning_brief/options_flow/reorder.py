@@ -6,10 +6,16 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers import selector
 
 
 def _subentry_order_schema(entry: ConfigEntry, subentry_type: str) -> vol.Schema:
-    """One order int field per existing subentry of subentry_type."""
+    """One numeric-order field per existing subentry of subentry_type.
+
+    Returns an empty schema if no subentries of that type exist —
+    HA still renders the form with the step description, which we use
+    to tell the user there's nothing to reorder yet.
+    """
     subentries = getattr(entry, "subentries", {}) or {}
     items = (
         list(subentries.values()) if isinstance(subentries, dict) else list(subentries)
@@ -23,8 +29,13 @@ def _subentry_order_schema(entry: ConfigEntry, subentry_type: str) -> vol.Schema
             continue
         data = getattr(sub, "data", {}) or {}
         current_order = int(data.get("order", 0))
-        fields[vol.Optional(f"order__{sid}", default=current_order)] = vol.All(
-            int, vol.Range(min=0)
+        title = getattr(sub, "title", None) or data.get("label") or sid
+        fields[
+            vol.Optional(f"order__{sid}", default=current_order, description=str(title))
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0, max=999, step=1, mode=selector.NumberSelectorMode.BOX
+            )
         )
     return vol.Schema(fields)
 

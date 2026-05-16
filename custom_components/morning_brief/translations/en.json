@@ -16,37 +16,83 @@
           "language": "Language"
         }
       },
-      "logical_day": {
-        "title": "Logical day strategy",
-        "description": "Decide which calendar date the brief is about. Most users want fixed_cutoff with a 4 AM cutoff.",
+      "logical_day_strategy": {
+        "title": "Logical day — strategy",
+        "description": "Decide which calendar date the brief is about. The default \"fixed cutoff at 4 AM\" works for most setups. \"Sleep sensor\" uses a binary_sensor to detect wake. \"Manual\" requires a service call.",
         "data": {
-          "strategy": "Strategy",
-          "cutoff_hour": "Cutoff hour (0-23)",
-          "sleep_sensor_entity": "Sleep sensor (binary_sensor.*)",
+          "strategy": "Strategy"
+        }
+      },
+      "logical_day_fixed_cutoff": {
+        "title": "Logical day — fixed cutoff",
+        "description": "The hour at which the brief considers the calendar day has advanced.",
+        "data": {
+          "cutoff_hour": "Cutoff hour (0-23)"
+        }
+      },
+      "logical_day_sleep_sensor": {
+        "title": "Logical day — sleep sensor",
+        "description": "The brief refers to the day that follows the most recent detected sleep session.",
+        "data": {
+          "sleep_sensor_entity": "Sleep sensor",
           "awake_state": "Awake state value",
           "hard_fallback_hour": "Hard fallback hour",
           "lookback_hours": "Lookback hours",
           "min_sleep_duration_minutes": "Minimum sleep duration (minutes)"
         }
       },
-      "trigger": {
-        "title": "Trigger",
-        "description": "When should the brief be generated?",
+      "trigger_level": {
+        "title": "Trigger — level",
+        "description": "How should the brief decide when to fire? L1 = fixed schedule, L2 = sensor + delay, L3 = only via service / your own automation.",
         "data": {
-          "trigger_level": "Trigger level",
-          "time": "Time (HH:MM)",
-          "trigger_entity_id": "Trigger entity",
-          "trigger_to_state": "Trigger state value",
-          "delay_minutes": "Delay (minutes)",
-          "fallback_hour": "Fallback hour"
+          "trigger_level": "Trigger level"
         }
       },
-      "ai": {
-        "title": "AI provider",
-        "description": "Which AI model writes the natural-language summary?",
+      "trigger_schedule": {
+        "title": "Trigger — fixed schedule",
+        "description": "Daily generation time and which weekdays are active.",
         "data": {
-          "ai_provider_type": "AI provider",
-          "entity_id": "ai_task entity",
+          "time": "Time",
+          "days_of_week": "Active days"
+        }
+      },
+      "trigger_sensor_based": {
+        "title": "Trigger — sensor-based",
+        "description": "The brief fires once the sensor reaches a given state (typically \"wake\"), with a delay and an hour-of-day fallback.",
+        "data": {
+          "trigger_entity_id": "Trigger entity",
+          "trigger_to_state": "Trigger state value",
+          "delay_minutes": "Delay after trigger (minutes)",
+          "fallback_hour": "Fallback hour",
+          "fallback_active": "Enable hour-of-day fallback"
+        }
+      },
+      "ai_provider": {
+        "title": "AI — provider",
+        "description": "Which AI writes the natural-language summary? \"Disabled\" produces a brief with empty AI sections. \"HA ai_task\" wraps an existing ai_task.* entity. Anthropic / OpenAI options use a direct API key.",
+        "data": {
+          "ai_provider_type": "AI provider"
+        }
+      },
+      "ai_ha_ai_task": {
+        "title": "AI — ai_task entity",
+        "description": "Pick an ai_task.* entity already configured in Home Assistant.",
+        "data": {
+          "entity_id": "ai_task entity"
+        }
+      },
+      "ai_anthropic": {
+        "title": "AI — Anthropic (direct key)",
+        "description": "Direct call to api.anthropic.com. The API key is stored on disk — prefer using !secret.",
+        "data": {
+          "api_key": "API key",
+          "model": "Model"
+        }
+      },
+      "ai_openai": {
+        "title": "AI — OpenAI (direct key)",
+        "description": "Direct call to api.openai.com. The API key is stored on disk — prefer using !secret.",
+        "data": {
           "api_key": "API key",
           "model": "Model"
         }
@@ -70,7 +116,18 @@
     "step": {
       "init": {
         "title": "Morning Brief — options",
-        "description": "Pick the section you want to edit."
+        "description": "Pick the section you want to edit. Each section is saved as soon as you submit it and brings you back to this menu. Click \"Done\" to close.",
+        "menu_options": {
+          "general": "General (name, language, AI)",
+          "logical_day": "Logical day (date strategy)",
+          "trigger": "Trigger (when to generate)",
+          "notification": "Notification (where to send)",
+          "persistence": "Persistence (history size)",
+          "reorder_fields": "Reorder fields",
+          "reorder_categories": "Reorder categories",
+          "advanced": "Advanced (logs, prompt, debug)",
+          "done": "Done (close the menu)"
+        }
       },
       "general": {
         "title": "General",
@@ -113,8 +170,13 @@
         "data": {
           "notify_service": "Notify service (e.g. mobile_app_phone)",
           "click_action_url": "Click-action URL",
-          "notification_pinned_fields": "Pinned fields (field IDs)",
+          "notification_pinned_fields": "Pinned fields (comma-separated IDs)",
           "also_create_persistent_notification": "Also create persistent notification"
+        },
+        "data_description": {
+          "notify_service": "Short name of the HA notify service (without the notify. prefix).",
+          "click_action_url": "URL opened when the user taps the notification (e.g. your Lovelace dashboard).",
+          "notification_pinned_fields": "Comma-separated list of field IDs to highlight in the notification body."
         }
       },
       "persistence": {
@@ -126,20 +188,26 @@
       },
       "reorder_fields": {
         "title": "Reorder fields",
-        "description": "Set the display order for each field."
+        "description": "Set a display-order number per field. Lower numbers appear first. If nothing shows, add fields first via the \"+ Add sub-item\" button on the integration page."
       },
       "reorder_categories": {
         "title": "Reorder categories",
-        "description": "Set the display order for each category."
+        "description": "Set a display-order number per category. Lower numbers appear first. If nothing shows, add a category first via the \"+ Add sub-item\" button."
       },
       "advanced": {
         "title": "Advanced",
-        "description": "Log level, prompt template override, optional preview service exposure.",
+        "description": "Low-level settings useful for debugging and AI customisation.",
         "data": {
           "log_level": "Log level",
-          "prompt_template_override": "Prompt template override (leave empty for default)",
+          "prompt_template_override": "AI prompt template override",
           "user_custom_context": "User custom context",
           "expose_preview_service": "Expose preview service"
+        },
+        "data_description": {
+          "log_level": "Verbosity of morning_brief logs (DEBUG = very verbose, ERROR = silent).",
+          "prompt_template_override": "Raw Jinja2 that replaces the default prompt. Leave empty to use the prompt shipped with the integration.",
+          "user_custom_context": "Free-text injected into the prompt as \"user context\". Useful to set tone, flag day-of constraints, etc.",
+          "expose_preview_service": "When enabled, morning_brief.preview can be called to generate a brief without persisting it (useful for testing a new prompt)."
         }
       }
     }

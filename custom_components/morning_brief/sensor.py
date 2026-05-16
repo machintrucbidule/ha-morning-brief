@@ -16,6 +16,7 @@ from typing import Any
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -73,6 +74,7 @@ class MorningBriefSensor(CoordinatorEntity[MorningBriefCoordinator], SensorEntit
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.entry_id}_main"
         self._attr_name = coordinator.instance_name or "Morning Brief"
+        self._attr_device_info = _device_info(coordinator)
 
     @property
     def native_value(self) -> str:
@@ -95,6 +97,18 @@ class MorningBriefStatusSensor(CoordinatorEntity[MorningBriefCoordinator], Senso
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.entry_id}_status"
         self._attr_name = f"{coordinator.instance_name or 'Morning Brief'} status"
+        self._attr_device_info = _device_info(coordinator)
+
+
+def _device_info(coordinator: MorningBriefCoordinator) -> DeviceInfo:
+    """Single device per morning_brief instance (matches button.py)."""
+    return DeviceInfo(
+        identifiers={(DOMAIN, coordinator.entry_id)},
+        name=coordinator.instance_name or "Morning Brief",
+        manufacturer="Morning Brief",
+        model=coordinator.report_type,
+        entry_type=None,
+    )
 
     @property
     def native_value(self) -> str:

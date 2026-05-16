@@ -128,5 +128,7 @@ Live checklist for the integration repo. Updated continuously. Phases mirror Sec
 - [x] preview.png placeholder generated in docs/img/
 - [x] MORNING_BRIEF_SPEC.md retained in this repo; removed from card repo per release decision
 - [x] CLAUDE.md + PROGRESS.md updated to reflect v1.0.0-rc.1 state
-- [x] Tag v1.0.0-rc.1 (release candidate — final v1.0.0 pending manual HA validation per Section 37)
-- [ ] Tag v1.0.0 (after user validates: live HA install, AI degraded mode, real screenshot)
+- [x] Tag v1.0.0-rc.1 (release candidate)
+- [x] Tag v1.0.0-rc.2 (hotfix: OptionsFlow.config_entry read-only on HA ≥ 2024.12)
+- [x] Tag v1.0.0-rc.3 (live-HA UX pass: menu labels, pre-fill, selectors, conditional flow split, device_info, etc. — see CHANGELOG)
+- [ ] Tag v1.0.0 (after user validates: notification fires, card renders, AI degraded mode, history nav)

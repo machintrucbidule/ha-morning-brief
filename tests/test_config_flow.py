@@ -13,7 +13,7 @@ from custom_components.morning_brief.subentries.category.flow import (
 
 
 async def test_initial_flow_creates_morning_entry(hass: HomeAssistant) -> None:
-    """Complete the 6-step flow for a morning instance with disabled AI."""
+    """Complete the multi-step flow for a morning instance with disabled AI."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
@@ -30,46 +30,36 @@ async def test_initial_flow_creates_morning_entry(hass: HomeAssistant) -> None:
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"instance_name": "Brief matinal", "language": "fr"}
     )
-    assert result["step_id"] == "logical_day"
+    assert result["step_id"] == "logical_day_strategy"
 
-    # Step 3 — logical_day (fixed_cutoff default)
+    # Step 3a — logical_day strategy picker
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"],
-        {
-            "strategy": "fixed_cutoff",
-            "cutoff_hour": 4,
-            "sleep_sensor_entity": "",
-            "awake_state": "off",
-            "hard_fallback_hour": 12,
-            "lookback_hours": 36,
-            "min_sleep_duration_minutes": 120,
-        },
+        result["flow_id"], {"strategy": "fixed_cutoff"}
     )
-    assert result["step_id"] == "trigger"
+    assert result["step_id"] == "logical_day_fixed_cutoff"
 
-    # Step 4 — trigger (schedule)
+    # Step 3b — fixed-cutoff params
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"],
-        {
-            "trigger_level": "schedule",
-            "time": "07:30",
-            "trigger_entity_id": "",
-            "trigger_to_state": "off",
-            "delay_minutes": 30,
-            "fallback_hour": 12,
-        },
+        result["flow_id"], {"cutoff_hour": 4}
     )
-    assert result["step_id"] == "ai"
+    assert result["step_id"] == "trigger_level"
 
-    # Step 5 — AI (disabled)
+    # Step 4a — trigger level picker
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"trigger_level": "schedule"}
+    )
+    assert result["step_id"] == "trigger_schedule"
+
+    # Step 4b — schedule params
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        {
-            "ai_provider_type": "disabled",
-            "entity_id": "",
-            "api_key": "",
-            "model": "",
-        },
+        {"time": "07:30", "days_of_week": ["0", "1", "2", "3", "4", "5", "6"]},
+    )
+    assert result["step_id"] == "ai_provider"
+
+    # Step 5 — AI provider picker (disabled skips param step)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"ai_provider_type": "disabled"}
     )
     assert result["step_id"] == "copy_from"
 
@@ -87,7 +77,7 @@ async def test_initial_flow_creates_morning_entry(hass: HomeAssistant) -> None:
 
 
 async def test_evening_flow_skips_logical_day_step(hass: HomeAssistant) -> None:
-    """Evening report → step 3 (logical_day) must be skipped."""
+    """Evening report → step 3 (logical_day_strategy) must be skipped."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
@@ -97,7 +87,7 @@ async def test_evening_flow_skips_logical_day_step(hass: HomeAssistant) -> None:
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"instance_name": "Brief soir", "language": "fr"}
     )
-    assert result["step_id"] == "trigger"  # logical_day skipped
+    assert result["step_id"] == "trigger_level"
 
 
 async def test_invalid_report_type_rejected(hass: HomeAssistant) -> None:
@@ -115,7 +105,7 @@ async def test_invalid_report_type_rejected(hass: HomeAssistant) -> None:
 
 
 def test_options_flow_main_menu_lists_sections() -> None:
-    """The options main menu shows the 8 expected sections (or 7 for non-morning)."""
+    """The options main menu shows the expected sections (morning includes logical_day)."""
     entry = type(
         "FakeEntry",
         (),

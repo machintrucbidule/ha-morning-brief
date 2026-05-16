@@ -16,37 +16,83 @@
           "language": "Langue"
         }
       },
-      "logical_day": {
-        "title": "Stratégie de jour logique",
-        "description": "Détermine la date calendaire à laquelle se rapporte le brief. Le défaut fixed_cutoff à 4 h convient à 90 % des cas.",
+      "logical_day_strategy": {
+        "title": "Jour logique — stratégie",
+        "description": "Détermine la date calendaire à laquelle se rapporte le brief. Le défaut « bascule fixe à 4 h » convient à 90 % des cas. « Capteur de sommeil » utilise un binary_sensor pour détecter le réveil. « Manuel » nécessite un appel de service.",
         "data": {
-          "strategy": "Stratégie",
-          "cutoff_hour": "Heure de bascule (0-23)",
-          "sleep_sensor_entity": "Capteur de sommeil (binary_sensor.*)",
-          "awake_state": "Valeur d'état \"éveillé\"",
+          "strategy": "Stratégie"
+        }
+      },
+      "logical_day_fixed_cutoff": {
+        "title": "Jour logique — bascule fixe",
+        "description": "Heure à laquelle le brief considère qu'on est passé au jour suivant.",
+        "data": {
+          "cutoff_hour": "Heure de bascule (0-23)"
+        }
+      },
+      "logical_day_sleep_sensor": {
+        "title": "Jour logique — capteur de sommeil",
+        "description": "Le brief se réfère au jour qui suit la dernière session de sommeil détectée.",
+        "data": {
+          "sleep_sensor_entity": "Capteur de sommeil",
+          "awake_state": "Valeur d'état « éveillé »",
           "hard_fallback_hour": "Heure de fallback dur",
           "lookback_hours": "Fenêtre de recherche (heures)",
           "min_sleep_duration_minutes": "Durée minimum de sommeil (minutes)"
         }
       },
-      "trigger": {
-        "title": "Déclencheur",
-        "description": "Quand le brief doit-il être généré ?",
+      "trigger_level": {
+        "title": "Déclencheur — niveau",
+        "description": "Comment décider de l'instant où le brief est généré ? L1 = horaire fixe, L2 = sensor + délai, L3 = uniquement via service / votre automatisation.",
         "data": {
-          "trigger_level": "Niveau de déclencheur",
-          "time": "Heure (HH:MM)",
-          "trigger_entity_id": "Entité déclencheur",
-          "trigger_to_state": "Valeur d'état déclencheur",
-          "delay_minutes": "Délai (minutes)",
-          "fallback_hour": "Heure de fallback"
+          "trigger_level": "Niveau de déclencheur"
         }
       },
-      "ai": {
-        "title": "Fournisseur IA",
-        "description": "Quel modèle écrit le résumé en langage naturel ?",
+      "trigger_schedule": {
+        "title": "Déclencheur — horaire fixe",
+        "description": "Heure de génération et jours actifs.",
         "data": {
-          "ai_provider_type": "Fournisseur IA",
-          "entity_id": "Entité ai_task",
+          "time": "Heure",
+          "days_of_week": "Jours actifs"
+        }
+      },
+      "trigger_sensor_based": {
+        "title": "Déclencheur — basé sur un capteur",
+        "description": "Le brief part dès que le capteur atteint un état donné (typiquement « réveil »), avec un délai et un fallback horaire.",
+        "data": {
+          "trigger_entity_id": "Entité déclencheur",
+          "trigger_to_state": "Valeur d'état déclencheur",
+          "delay_minutes": "Délai après déclenchement (minutes)",
+          "fallback_hour": "Heure de fallback",
+          "fallback_active": "Activer le fallback horaire"
+        }
+      },
+      "ai_provider": {
+        "title": "IA — fournisseur",
+        "description": "Quel modèle écrit la narration du brief ? « Désactivé » génère un brief sans IA (sections de narration vides). « HA ai_task » utilise une entité ai_task.* déjà configurée. Les options Anthropic / OpenAI utilisent une clé API directe.",
+        "data": {
+          "ai_provider_type": "Fournisseur IA"
+        }
+      },
+      "ai_ha_ai_task": {
+        "title": "IA — entité ai_task",
+        "description": "Sélectionnez une entité ai_task.* déjà configurée dans Home Assistant.",
+        "data": {
+          "entity_id": "Entité ai_task"
+        }
+      },
+      "ai_anthropic": {
+        "title": "IA — Anthropic (clé directe)",
+        "description": "Appel direct à api.anthropic.com. La clé API est stockée sur disque ; pensez à utiliser !secret.",
+        "data": {
+          "api_key": "Clé API",
+          "model": "Modèle"
+        }
+      },
+      "ai_openai": {
+        "title": "IA — OpenAI (clé directe)",
+        "description": "Appel direct à api.openai.com. La clé API est stockée sur disque ; pensez à utiliser !secret.",
+        "data": {
           "api_key": "Clé API",
           "model": "Modèle"
         }
@@ -70,7 +116,18 @@
     "step": {
       "init": {
         "title": "Morning Brief — options",
-        "description": "Choisissez la section à éditer."
+        "description": "Choisissez la section à éditer. Vos modifications sont enregistrées dès que vous validez une section, et vous revenez à ce menu. Cliquez sur « Terminer » pour fermer.",
+        "menu_options": {
+          "general": "Général (nom, langue, IA)",
+          "logical_day": "Jour logique (stratégie de date)",
+          "trigger": "Déclencheur (quand générer)",
+          "notification": "Notification (où envoyer le brief)",
+          "persistence": "Persistance (taille de l'historique)",
+          "reorder_fields": "Réordonner les champs",
+          "reorder_categories": "Réordonner les catégories",
+          "advanced": "Avancé (logs, prompt, debug)",
+          "done": "Terminer (fermer le menu)"
+        }
       },
       "general": {
         "title": "Général",
@@ -113,8 +170,13 @@
         "data": {
           "notify_service": "Service notify (ex. mobile_app_phone)",
           "click_action_url": "URL d'action au clic",
-          "notification_pinned_fields": "Champs épinglés (field IDs)",
+          "notification_pinned_fields": "Champs épinglés (IDs séparés par virgule)",
           "also_create_persistent_notification": "Créer aussi une notification persistante"
+        },
+        "data_description": {
+          "notify_service": "Nom court du service notify HA (sans le préfixe notify.).",
+          "click_action_url": "URL ouverte au tap sur la notification (ex. votre dashboard Lovelace).",
+          "notification_pinned_fields": "Liste de field IDs séparés par des virgules, à mettre en valeur dans la notification."
         }
       },
       "persistence": {
@@ -126,20 +188,26 @@
       },
       "reorder_fields": {
         "title": "Réordonner les champs",
-        "description": "Définir l'ordre d'affichage de chaque champ."
+        "description": "Saisissez un numéro d'ordre par champ. Plus le numéro est petit, plus le champ apparaît tôt dans le brief. Si aucun champ ne s'affiche, ajoutez-en d'abord via le bouton « + Ajouter un sous-élément » sur la page de l'intégration."
       },
       "reorder_categories": {
         "title": "Réordonner les catégories",
-        "description": "Définir l'ordre d'affichage de chaque catégorie."
+        "description": "Saisissez un numéro d'ordre par catégorie. Plus le numéro est petit, plus la catégorie apparaît tôt. Si rien ne s'affiche, ajoutez d'abord une catégorie via le bouton « + Ajouter un sous-élément »."
       },
       "advanced": {
         "title": "Avancé",
-        "description": "Niveau de log, surcharge de prompt, exposition du service preview.",
+        "description": "Réglages bas-niveau utiles pour le debug ou la personnalisation de l'IA.",
         "data": {
           "log_level": "Niveau de log",
-          "prompt_template_override": "Surcharge du prompt (laisser vide pour défaut)",
+          "prompt_template_override": "Surcharge du prompt IA",
           "user_custom_context": "Contexte utilisateur",
           "expose_preview_service": "Exposer le service preview"
+        },
+        "data_description": {
+          "log_level": "Verbosité des logs morning_brief (DEBUG = très bavard, ERROR = silencieux).",
+          "prompt_template_override": "Jinja2 brut qui remplace le prompt par défaut. Laisser vide pour utiliser celui livré avec l'intégration.",
+          "user_custom_context": "Texte libre injecté dans le prompt sous la forme « contexte utilisateur ». Utile pour personnaliser le ton, signaler des contraintes du jour, etc.",
+          "expose_preview_service": "Si activé, le service morning_brief.preview est utilisable pour générer un brief sans le persister (utile pour tester un nouveau prompt)."
         }
       }
     }
