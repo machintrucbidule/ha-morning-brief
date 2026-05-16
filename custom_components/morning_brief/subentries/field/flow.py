@@ -233,7 +233,7 @@ class FieldSubentryFlow(_SubentryBase):
     async def async_step_gate(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Step 7 — optional availability gate, then finalise."""
+        """Step 7 — optional availability gate, then applicable_to."""
         if user_input is not None:
             gate_eid = str(user_input.get("gate_entity_id") or "")
             if gate_eid:
@@ -249,10 +249,93 @@ class FieldSubentryFlow(_SubentryBase):
                 self._draft["field_id"] = (
                     label.lower().replace(" ", "_") or "field"
                 )
-            return self._finalise()
+            return await self.async_step_applicable_to()
         return self.async_show_form(
             step_id="gate", data_schema=gate_schema(self._draft)
         )
+
+    async def async_step_applicable_to(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Step 8 — pick which morning_brief instances this field applies to.
+
+        Empty selection = visible in EVERY instance (default for users
+        who don't know what to pick). Otherwise the field shows up only
+        in the picked instances.
+        """
+        import voluptuous as vol
+        from homeassistant.helpers import selector
+
+        from ...const import DOMAIN
+
+        if user_input is not None:
+            applicable = list(user_input.get("applicable_to") or [])
+            self._draft["_pool_applicable_to"] = applicable
+            return await self._finalise_with_pool()
+        entries = self._hass_entries(DOMAIN)
+        options = [
+            selector.SelectOptionDict(
+                value=e.entry_id, label=e.title or e.entry_id
+            )
+            for e in entries
+        ]
+        return self.async_show_form(
+            step_id="applicable_to",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        "applicable_to",
+                        default=self._draft.get("_pool_applicable_to", []),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=options,
+                            multiple=True,
+                            mode=selector.SelectSelectorMode.LIST,
+                        )
+                    ),
+                }
+            ),
+        )
+
+    def _hass_entries(self, domain: str) -> list[Any]:
+        hass = getattr(self, "hass", None)
+        if hass is None:
+            return []
+        return list(hass.config_entries.async_entries(domain))
+
+    async def _finalise_with_pool(self) -> ConfigFlowResult:
+        """Write the field into the shared pool then close the flow."""
+        from ...pool import async_get_pool
+
+        applicable = list(self._draft.pop("_pool_applicable_to", []) or [])
+        pool = async_get_pool(self.hass)  # type: ignore[attr-defined]
+        if not pool._loaded:  # noqa: SLF001
+            await pool.async_load()
+        # Reconfigure: try to find an existing pool item that points at
+        # the subentry being edited and update it instead of duplicating.
+        existing_id: str | None = None
+        try:
+            subentry = self._get_reconfigure_subentry()  # type: ignore[attr-defined]
+        except AttributeError:
+            subentry = None
+        if subentry is not None:
+            src_sid = getattr(subentry, "subentry_id", None)
+            for item in pool.list_fields():
+                if item.get("data", {}).get("_migrated_subentry_id") == str(src_sid):
+                    existing_id = str(item.get("id"))
+                    break
+        if existing_id is not None:
+            await pool.async_update_field(
+                existing_id, data=dict(self._draft), applicable_to=applicable
+            )
+        else:
+            await pool.async_add_field(
+                dict(self._draft), applicable_to=applicable
+            )
+        # Also call the legacy HA subentry create/update so HA UI stays
+        # in sync. The on-startup migration deduplicates via the
+        # _migrated_subentry_id flag on the pool item.
+        return self._finalise()
 
     def _finalise(self) -> ConfigFlowResult:
         """Persist the draft.

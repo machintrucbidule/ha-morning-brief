@@ -361,6 +361,13 @@
             "gate_entity_id": "Capteur de gate",
             "gate_expected_state": "Valeur d'état attendue"
           }
+        },
+        "applicable_to": {
+          "title": "Champ — instances applicables",
+          "description": "Sélectionnez les briefs où ce champ doit apparaître. Ne rien cocher = visible dans TOUS les briefs (recommandé pour les champs génériques).",
+          "data": {
+            "applicable_to": "Visible dans"
+          }
         }
       }
     },
@@ -379,6 +386,13 @@
             "order": "Ordre d'affichage",
             "display_when_empty": "Afficher quand vide",
             "category_id_override": "ID de catégorie (avancé)"
+          }
+        },
+        "applicable_to": {
+          "title": "Catégorie — instances applicables",
+          "description": "Sélectionnez les briefs où cette catégorie doit apparaître. Ne rien cocher = visible dans TOUS les briefs.",
+          "data": {
+            "applicable_to": "Visible dans"
           }
         }
       }

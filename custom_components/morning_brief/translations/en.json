@@ -361,6 +361,13 @@
             "gate_entity_id": "Gate sensor",
             "gate_expected_state": "Expected state"
           }
+        },
+        "applicable_to": {
+          "title": "Field — applicable instances",
+          "description": "Select the briefs this field should appear in. Leaving empty means visible in EVERY brief (recommended for shared fields).",
+          "data": {
+            "applicable_to": "Visible in"
+          }
         }
       }
     },
@@ -379,6 +386,13 @@
             "order": "Display order",
             "display_when_empty": "Display when empty",
             "category_id_override": "Category ID override (advanced)"
+          }
+        },
+        "applicable_to": {
+          "title": "Category — applicable instances",
+          "description": "Select the briefs this category should appear in. Leaving empty means visible in EVERY brief.",
+          "data": {
+            "applicable_to": "Visible in"
           }
         }
       }

@@ -6,6 +6,62 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0-rc.9] — 2026-05-16
+
+### Fixed (live-HA pass #7 — 5 user-reported issues bundled)
+
+1. **`ValueError: Source is reconfigure, expected user`** when editing a
+   field or category. The flow now uses
+   `async_update_and_abort` instead of `async_create_entry` when source
+   is reconfigure — édition complète possible (pas juste le titre).
+2. **Reorder showed raw `order__01HR…` keys.** Replaced with a real
+   arrow ↑↓ UX (Section 22.1 spec): SelectSelector with one row per
+   item, action `↑/↓ <Label>`, plus 💾 Save and × Cancel. Each click
+   re-renders with the swap applied. Current order is shown in the
+   step description for context.
+3. **Smart provider type recommendation.** Splitting step 1 in two:
+   the user picks the entity FIRST, then a separate step shows ONLY
+   the compatible provider types for that entity (heuristic on
+   state_class / device_class / domain), with the recommended one
+   highlighted. No more "you chose X, Y was better, restart".
+4. **No visible result from Generate / Preview buttons.** Per user
+   request "you can't store this on the device directly?": three new
+   sensors per instance — `sensor.morning_brief_<slug>` (canonical
+   JSON in attributes), `sensor.morning_brief_<slug>_markdown` (full
+   rendered brief in the `markdown` attribute), and one
+   `sensor.morning_brief_<slug>_<field_id>` PER configured field
+   (state = formatted value, attributes = comparisons + anomaly).
+   Everything visible via Developer Tools → States and useable in
+   automations / dashboards without installing the Lovelace card.
+5. **The "create the same fields three times" problem.** Per the user-
+   approved D12 override in DECISIONS.md, fields and categories now
+   live in a domain-level **shared pool** (`pool.py` —
+   `FieldsCategoriesPool` wrapping a `morning_brief_pool` Store).
+   Each pool item carries `applicable_to: list[entry_id]`; empty list
+   = visible in every instance. The subentry flow gains a final
+   `applicable_to` multiselect step letting you scope each field /
+   category to specific briefs. A one-shot migration at first rc.9
+   setup aggregates every existing per-instance subentry into the
+   pool (idempotent — re-running won't duplicate).
+
+### Architecture (D12 override)
+
+Per DECISIONS.md (2026-05-16): the per-instance subentry model is
+deprecated. The shared pool is now the source of truth for
+fields and categories; `_attach_pool_view(entry, coordinator, pool)`
+filters the pool by the entry's `entry_id` so each instance sees the
+applicable subset. Subentry flows still drive add/edit UX (HA-native
+"+ Add" buttons stay) but write through to the pool. Old per-instance
+subentries are kept on disk after migration for safe rollback.
+
+### Changed
+
+- Bump manifest.json version `1.0.0rc8` → `1.0.0rc9`.
+
+### Test
+- `tests/test_e2e_morning.py` expects 3 instance-level sensors now
+  (main + status + markdown) instead of 2.
+
 ## [1.0.0-rc.8] — 2026-05-16
 
 ### Fixed (live-HA pass #6)
