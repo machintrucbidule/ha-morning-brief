@@ -1,9 +1,9 @@
-# rationale: 200+ LOC because we host one schema function per
-# branch-step (logical_day × 2, trigger × 2, ai × 3) plus the picker
-# schemas (logical_day_strategy, trigger_level, ai_provider). Keeping
-# them in one file avoids 7 sibling modules of ~30 lines each.
-"""Voluptuous schemas shared between the initial config_flow and the
-options_flow.
+"""Voluptuous schemas shared between the initial config_flow and the options_flow.
+
+rationale: 200+ LOC because we host one schema function per branch-step
+(logical_day × 2, trigger × 2, ai × 3) plus the picker schemas
+(logical_day_strategy, trigger_level, ai_provider). Keeping them in one
+file avoids 7 sibling modules of ~30 lines each.
 
 Both flows now follow the same picker → params pattern (G20):
 - a SelectSelector picks an enum value (strategy / level / provider type)
@@ -23,7 +23,6 @@ from __future__ import annotations
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.helpers import selector
 
 from .const import (
