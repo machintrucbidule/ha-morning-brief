@@ -10,6 +10,6 @@
   "after_dependencies": ["recorder", "ai_task", "calendar", "weather"],
   "integration_type": "service",
   "requirements": ["Jinja2>=3.1"],
-  "version": "1.0.0rc9",
+  "version": "1.0.0-rc.10",
   "supported_subentry_types": ["field", "category"]
 }

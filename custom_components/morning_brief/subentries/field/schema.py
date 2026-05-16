@@ -450,7 +450,8 @@ def gate_schema(current: dict[str, Any]) -> vol.Schema:
     return vol.Schema(
         {
             vol.Optional(
-                "gate_entity_id", default=gate.get("entity_id", "")
+                "gate_entity_id",
+                description={"suggested_value": gate.get("entity_id") or None},
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="binary_sensor")
             ),

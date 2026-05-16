@@ -6,6 +6,51 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0-rc.10] — 2026-05-16
+
+### Fixed (live-HA pass #8)
+
+- **`ValueError: Source is user, expected reconfigure`** quand on créait
+  une nouvelle catégorie / un nouveau champ. Le code appelait
+  `self._get_reconfigure_subentry()` dans tous les cas, qui leve
+  `ValueError` si le flow source n'est pas "reconfigure". Le
+  try/except n'attrapait que `AttributeError`. Fix: catcher aussi
+  `ValueError` aux six sites concernés.
+- **gate_entity_id obligatoire alors que step "(optionnel)".**
+  `default=""` forçait l'EntitySelector à valider une chaîne vide
+  (rejetée). Remplacé par
+  `description={"suggested_value": existing or None}` — pas de
+  default, le user peut laisser vide.
+- **"Aucune recommandation automatique" pour un sensor numérique.**
+  `_recommend_provider_type` retournait `None` quand l'entity n'était
+  pas dans `hass.states` ou que la value n'était pas évaluable —
+  affichait un message frustrant. Désormais elle retourne TOUJOURS un
+  type (fallback à `"instantaneous"` quand l'entité est inconnue,
+  `"state"` quand le state n'est pas numérique). Aussi: si
+  `state_class in (total_increasing, total)` sans device_class
+  spécifique, recommande `cumulative` au lieu de `instantaneous` (cas
+  typique d'un compteur de sleep_total en minutes).
+- **Liste des provider types trop restrictive pour certains capteurs.**
+  Pour un capteur numérique sans state_class spécial, on ne proposait
+  que `["instantaneous"]`. Élargi à
+  `["instantaneous", "cumulative", "event_based", "manual"]` (le user
+  voit son sleep_total et peut choisir cumulative qui est ce qu'il
+  veut). Idem pour les autres branches.
+- **HACS continue à afficher "Mise à jour disponible vers <SHA>" après
+  une install propre.** Diagnostic: `manifest.json version`
+  (`1.0.0rc9` — PEP 440) ne matche pas le tag git
+  (`v1.0.0-rc.9` — SemVer). HACS compare les deux strings et ne sait
+  pas que c'est la même version. Fix: aligner le format manifest sur
+  le tag → `1.0.0-rc.10` (SemVer avec tirets). À surveiller — si HA
+  refuse ce format on revient à PEP 440 ET on aligne le tag.
+
+### Note
+
+- Le **manifest.version** change de format `Nrc[N]` (PEP 440) à
+  `N-rc.N` (SemVer). Si HA ou HACS rejettent le nouveau format, on
+  inverse: tag git en PEP 440 (sans dashs) au lieu de l'inverse. À
+  vérifier au premier user feedback rc.10.
+
 ## [1.0.0-rc.9] — 2026-05-16
 
 ### Fixed (live-HA pass #7 — 5 user-reported issues bundled)

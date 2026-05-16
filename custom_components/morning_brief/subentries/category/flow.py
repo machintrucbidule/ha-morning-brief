@@ -116,7 +116,9 @@ class CategorySubentryFlow(_SubentryBase):
             existing_id: str | None = None
             try:
                 subentry = self._get_reconfigure_subentry()  # type: ignore[attr-defined]
-            except AttributeError:
+            except (AttributeError, ValueError):
+                # AttributeError on older HA, ValueError when not in a
+                # reconfigure flow (HA raises "Source is user...").
                 subentry = None
             if subentry is not None:
                 src_sid = getattr(subentry, "subentry_id", None)
@@ -171,7 +173,7 @@ class CategorySubentryFlow(_SubentryBase):
             if update_and_abort is not None:
                 try:
                     subentry = self._get_reconfigure_subentry()  # type: ignore[attr-defined]
-                except AttributeError:
+                except (AttributeError, ValueError):
                     subentry = None
                 if subentry is not None:
                     parent = getattr(self, "source_entry", None) or getattr(
@@ -192,7 +194,7 @@ class CategorySubentryFlow(_SubentryBase):
         """Edit entry point. Pre-populate from existing subentry data."""
         try:
             subentry = self._get_reconfigure_subentry()  # type: ignore[attr-defined]
-        except AttributeError:
+        except (AttributeError, ValueError):
             subentry = None
         if subentry is not None:
             self._draft = dict(getattr(subentry, "data", {}) or {})

@@ -316,7 +316,11 @@ class FieldSubentryFlow(_SubentryBase):
         existing_id: str | None = None
         try:
             subentry = self._get_reconfigure_subentry()  # type: ignore[attr-defined]
-        except AttributeError:
+        except (AttributeError, ValueError):
+            # AttributeError: HA < 2024.11 doesn't expose the method.
+            # ValueError: HA raises "Source is user, expected reconfigure"
+            # when we're in a create flow (not reconfigure) — we just
+            # treat that as "no subentry being reconfigured" silently.
             subentry = None
         if subentry is not None:
             src_sid = getattr(subentry, "subentry_id", None)
@@ -353,7 +357,7 @@ class FieldSubentryFlow(_SubentryBase):
             if update_and_abort is not None:
                 try:
                     subentry = self._get_reconfigure_subentry()  # type: ignore[attr-defined]
-                except AttributeError:
+                except (AttributeError, ValueError):
                     subentry = None
                 if subentry is not None:
                     return update_and_abort(  # type: ignore[no-any-return]
@@ -413,7 +417,11 @@ class FieldSubentryFlow(_SubentryBase):
         """
         try:
             subentry = self._get_reconfigure_subentry()  # type: ignore[attr-defined]
-        except AttributeError:
+        except (AttributeError, ValueError):
+            # AttributeError: HA < 2024.11 doesn't expose the method.
+            # ValueError: HA raises "Source is user, expected reconfigure"
+            # when we're in a create flow (not reconfigure) — we just
+            # treat that as "no subentry being reconfigured" silently.
             subentry = None
         if subentry is not None:
             self._draft = dict(getattr(subentry, "data", {}) or {})
@@ -435,13 +443,16 @@ _ALL_PROVIDER_TYPES = [
 def _compatible_provider_types(hass: Any, entity_id: str) -> list[str]:
     """Return the subset of provider types compatible with the picked entity.
 
-    If the entity is unknown (no state), returns all types (we can't
-    decide). Otherwise filters by domain + state_class + device_class.
+    Heuristic — we err on the side of *including too many* options
+    rather than excluding ones that may legitimately apply. The user
+    saw "instantaneous" and "manual" only for a sleep-total sensor in
+    rc.9 and complained that "cumulative" was clearly missing.
     """
     if not entity_id:
         return list(_ALL_PROVIDER_TYPES)
     state = hass.states.get(entity_id) if hasattr(hass, "states") else None
     if state is None:
+        # Entity unknown or unavailable — offer everything sensible.
         return list(_ALL_PROVIDER_TYPES)
     domain = entity_id.split(".", 1)[0] if "." in entity_id else ""
     attrs = state.attributes or {}
@@ -454,23 +465,26 @@ def _compatible_provider_types(hass: Any, entity_id: str) -> list[str]:
     if domain == "binary_sensor":
         return ["state"]
     if domain == "input_number":
-        return ["manual", "instantaneous"]
+        return ["manual", "instantaneous", "cumulative", "event_based"]
     if domain == "input_text":
         return ["manual", "state"]
     if domain == "input_datetime":
         return ["manual", "duration"]
-    # Sensor domain (or other numeric domains)
-    if dc == "timestamp":
-        return ["duration"]
+    # Sensor domain (or other numeric-ish domains)
+    if dc in ("timestamp", "date"):
+        return ["duration", "manual"]
     try:
         float(state.state)
-        # Numeric current value
+        # Numeric current value: offer all numeric-friendly providers.
+        # state_class hint biases the order (recommended first) but
+        # never restricts.
         if sc in ("total_increasing", "total"):
-            return ["cumulative", "event_based", "instantaneous"]
-        return ["instantaneous", "event_based", "cumulative", "manual"]
+            return ["cumulative", "instantaneous", "event_based", "manual"]
+        return ["instantaneous", "cumulative", "event_based", "manual"]
     except (TypeError, ValueError):
-        # Non-numeric state
-        return ["state", "duration"]
+        # Non-numeric state (or unavailable) — still allow manual as a
+        # fallback in case the user wants to override the source.
+        return ["state", "duration", "manual"]
 
 
 def _recommend_provider_type(hass: Any, entity_id: str) -> str | None:
@@ -485,11 +499,13 @@ def _recommend_provider_type(hass: Any, entity_id: str) -> str | None:
     2. state_class + device_class combos (cumulative for energy/water counters).
     3. Numeric vs non-numeric current state (instantaneous vs state).
     """
+    # NEVER return None — always pick a safe fallback so the UI shows
+    # *some* recommendation instead of "Aucune recommandation".
     if not entity_id:
-        return None
+        return "instantaneous"
     state = hass.states.get(entity_id) if hasattr(hass, "states") else None
     if state is None:
-        return None
+        return "instantaneous"
     domain = entity_id.split(".", 1)[0] if "." in entity_id else ""
     attrs = state.attributes or {}
     state_class = attrs.get("state_class")
@@ -509,14 +525,18 @@ def _recommend_provider_type(hass: Any, entity_id: str) -> str | None:
         "monetary",
     ):
         return "cumulative"
+    if state_class in ("total_increasing", "total"):
+        # Numeric total (sleep minutes, steps, accumulated value) with
+        # no specific device_class — still likely a daily counter.
+        return "cumulative"
     if state_class == "measurement":
         return "instantaneous"
     # No state_class — branch on whether the current value is numeric.
     try:
         float(state.state)
-        # Numeric without state_class: rare-update sensor (Wi-Fi scale,
-        # manual reading) → event_based is usually right.
-        return "event_based"
+        # Numeric without state_class: most often it's an instant
+        # reading (temperature, weight, HR). event_based is the runner-up.
+        return "instantaneous"
     except (TypeError, ValueError):
         return "state"
 
