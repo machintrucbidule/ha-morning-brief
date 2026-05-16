@@ -719,8 +719,6 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
 
     def _entry_label(self, entry_id: str) -> str:
         """Human-readable label for an entry_id, used in pool listings."""
-        from ..const import DOMAIN
-
         entry = self.hass.config_entries.async_get_entry(entry_id)
         if entry is None:
             return entry_id
