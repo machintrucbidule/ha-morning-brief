@@ -116,52 +116,108 @@
     "step": {
       "init": {
         "title": "Morning Brief — options",
-        "description": "Choisissez la section à éditer. Vos modifications sont enregistrées dès que vous validez une section, et vous revenez à ce menu. Cliquez sur « Terminer » pour fermer.",
+        "description": "Chaque section enregistre dès validation et vous ramène à ce menu. Pour fermer sans enregistrer une section en cours, fermez la fenêtre via la croix en haut. Cliquez sur « Terminer » pour fermer proprement.",
         "menu_options": {
-          "general": "Général (nom, langue, IA)",
-          "logical_day": "Jour logique (stratégie de date)",
-          "trigger": "Déclencheur (quand générer)",
+          "general_basics": "Général — nom + langue",
+          "ai_picker": "IA — fournisseur + clé API",
+          "logical_day_picker": "Jour logique (stratégie de date)",
+          "trigger_picker": "Déclencheur (quand générer)",
           "notification": "Notification (où envoyer le brief)",
           "persistence": "Persistance (taille de l'historique)",
           "reorder_fields": "Réordonner les champs",
           "reorder_categories": "Réordonner les catégories",
-          "advanced": "Avancé (logs, prompt, debug)",
+          "advanced": "Avancé (logs, prompt, contexte)",
+          "view_default_prompt": "Voir le prompt IA par défaut",
           "done": "Terminer (fermer le menu)"
         }
       },
-      "general": {
-        "title": "Général",
-        "description": "Renommer l'instance, changer la langue, changer de fournisseur IA.",
+      "general_basics": {
+        "title": "Général — nom + langue",
+        "description": "Renommer l'instance et changer la langue de la narration. Le fournisseur IA est dans une section séparée.",
         "data": {
           "instance_name": "Nom de l'instance",
-          "language": "Langue",
-          "ai_provider_type": "Fournisseur IA",
-          "ai_entity_id": "Entité ai_task",
-          "ai_api_key": "Clé API",
-          "ai_model": "Modèle"
+          "language": "Langue"
         }
       },
-      "logical_day": {
-        "title": "Jour logique",
-        "description": "Change la date calendaire à laquelle se rapporte le brief.",
+      "ai_picker": {
+        "title": "IA — choix du fournisseur",
+        "description": "Quel modèle écrit la narration ? « Désactivé » génère un brief sans IA. « HA ai_task » utilise une entité ai_task déjà configurée. Anthropic / OpenAI nécessitent une clé API directe.",
         "data": {
-          "strategy": "Stratégie",
-          "cutoff_hour": "Heure de bascule",
+          "ai_provider_type": "Fournisseur IA"
+        }
+      },
+      "ai_ha_ai_task": {
+        "title": "IA — entité ai_task",
+        "description": "Sélectionnez une entité ai_task.* déjà configurée dans Home Assistant.",
+        "data": {
+          "entity_id": "Entité ai_task"
+        }
+      },
+      "ai_anthropic": {
+        "title": "IA — Anthropic (clé directe)",
+        "description": "Appel direct à api.anthropic.com. La clé API est stockée sur disque ; utilisez !secret pour l'éviter.",
+        "data": {
+          "api_key": "Clé API",
+          "model": "Modèle"
+        }
+      },
+      "ai_openai": {
+        "title": "IA — OpenAI (clé directe)",
+        "description": "Appel direct à api.openai.com. La clé API est stockée sur disque ; utilisez !secret pour l'éviter.",
+        "data": {
+          "api_key": "Clé API",
+          "model": "Modèle"
+        }
+      },
+      "logical_day_picker": {
+        "title": "Jour logique — stratégie",
+        "description": "Détermine la date calendaire à laquelle se rapporte le brief. « Bascule fixe à 4 h » convient à 90 % des cas. « Capteur de sommeil » utilise un binary_sensor pour détecter le réveil. « Manuel » nécessite un appel de service.",
+        "data": {
+          "strategy": "Stratégie"
+        }
+      },
+      "logical_day_fixed_cutoff": {
+        "title": "Jour logique — bascule fixe",
+        "description": "Heure à laquelle le brief considère qu'on est passé au jour suivant.",
+        "data": {
+          "cutoff_hour": "Heure de bascule (0-23)"
+        }
+      },
+      "logical_day_sleep_sensor": {
+        "title": "Jour logique — capteur de sommeil",
+        "description": "Le brief se réfère au jour qui suit la dernière session de sommeil détectée.",
+        "data": {
           "sleep_sensor_entity": "Capteur de sommeil",
-          "awake_state": "Valeur d'état \"éveillé\"",
-          "hard_fallback_hour": "Heure de fallback dur"
+          "awake_state": "Valeur d'état « éveillé »",
+          "hard_fallback_hour": "Heure de fallback dur",
+          "lookback_hours": "Fenêtre de recherche (heures)",
+          "min_sleep_duration_minutes": "Durée minimum de sommeil (minutes)"
         }
       },
-      "trigger": {
-        "title": "Déclencheur",
-        "description": "Change quand le brief se déclenche.",
+      "trigger_picker": {
+        "title": "Déclencheur — niveau",
+        "description": "Comment décider de l'instant où le brief est généré ? L1 = horaire fixe, L2 = sensor + délai, L3 = uniquement via service / votre automatisation.",
         "data": {
-          "trigger_level": "Niveau de déclencheur",
+          "trigger_level": "Niveau de déclencheur"
+        }
+      },
+      "trigger_schedule": {
+        "title": "Déclencheur — horaire fixe",
+        "description": "Heure de génération et jours actifs.",
+        "data": {
           "time": "Heure",
+          "days_of_week": "Jours actifs"
+        }
+      },
+      "trigger_sensor_based": {
+        "title": "Déclencheur — basé sur un capteur",
+        "description": "Le brief part dès que le capteur atteint un état donné, avec un délai et un fallback horaire.",
+        "data": {
           "trigger_entity_id": "Entité déclencheur",
           "trigger_to_state": "Valeur d'état déclencheur",
-          "delay_minutes": "Délai (minutes)",
-          "fallback_hour": "Heure de fallback"
+          "delay_minutes": "Délai après déclenchement (minutes)",
+          "fallback_hour": "Heure de fallback",
+          "fallback_active": "Activer le fallback horaire"
         }
       },
       "notification": {
@@ -196,7 +252,7 @@
       },
       "advanced": {
         "title": "Avancé",
-        "description": "Réglages bas-niveau utiles pour le debug ou la personnalisation de l'IA.",
+        "description": "Réglages bas-niveau utiles pour le debug ou la personnalisation de l'IA. Pour voir le prompt par défaut actuellement utilisé, retournez au menu et choisissez « Voir le prompt IA par défaut ».",
         "data": {
           "log_level": "Niveau de log",
           "prompt_template_override": "Surcharge du prompt IA",
@@ -209,6 +265,10 @@
           "user_custom_context": "Texte libre injecté dans le prompt sous la forme « contexte utilisateur ». Utile pour personnaliser le ton, signaler des contraintes du jour, etc.",
           "expose_preview_service": "Si activé, le service morning_brief.preview est utilisable pour générer un brief sans le persister (utile pour tester un nouveau prompt)."
         }
+      },
+      "view_default_prompt": {
+        "title": "Prompt IA par défaut ({report_type})",
+        "description": "Voici le prompt Jinja2 actuellement utilisé pour générer le brief. Si vous voulez le personnaliser, copiez-le, modifiez-le, puis collez-le dans « Avancé → Surcharge du prompt IA ».\n\n```\n{prompt}\n```\n\nValidez pour revenir au menu."
       }
     }
   },
@@ -327,6 +387,34 @@
         "morning": "Matin",
         "evening": "Soir",
         "weekly": "Hebdomadaire"
+      }
+    },
+    "language": {
+      "options": {
+        "en": "Anglais",
+        "fr": "Français"
+      }
+    },
+    "ai_provider_type": {
+      "options": {
+        "disabled": "Désactivé (brief sans IA)",
+        "ha_ai_task": "HA ai_task (utilise une entité ai_task déjà configurée)",
+        "anthropic_direct": "Anthropic (clé API directe)",
+        "openai_direct": "OpenAI (clé API directe)"
+      }
+    },
+    "logical_day_strategy": {
+      "options": {
+        "fixed_cutoff": "Bascule fixe (recommandé — simple)",
+        "sleep_sensor": "Capteur de sommeil (binary_sensor)",
+        "manual": "Manuel (via service morning_brief.advance_day)"
+      }
+    },
+    "trigger_level": {
+      "options": {
+        "schedule": "L1 — horaire fixe (cron-style)",
+        "sensor_based": "L2 — basé sur un capteur (avec délai + fallback)",
+        "external": "L3 — externe (votre propre automatisation)"
       }
     }
   },

@@ -116,52 +116,108 @@
     "step": {
       "init": {
         "title": "Morning Brief — options",
-        "description": "Pick the section you want to edit. Each section is saved as soon as you submit it and brings you back to this menu. Click \"Done\" to close.",
+        "description": "Each section saves on submit and returns you here. To discard a section in progress, close the dialog with the X. Click \"Done\" to close cleanly.",
         "menu_options": {
-          "general": "General (name, language, AI)",
-          "logical_day": "Logical day (date strategy)",
-          "trigger": "Trigger (when to generate)",
+          "general_basics": "General — name + language",
+          "ai_picker": "AI — provider + API key",
+          "logical_day_picker": "Logical day (date strategy)",
+          "trigger_picker": "Trigger (when to generate)",
           "notification": "Notification (where to send)",
           "persistence": "Persistence (history size)",
           "reorder_fields": "Reorder fields",
           "reorder_categories": "Reorder categories",
-          "advanced": "Advanced (logs, prompt, debug)",
+          "advanced": "Advanced (logs, prompt, context)",
+          "view_default_prompt": "View default AI prompt",
           "done": "Done (close the menu)"
         }
       },
-      "general": {
-        "title": "General",
-        "description": "Rename the instance, change language, swap AI provider.",
+      "general_basics": {
+        "title": "General — name + language",
+        "description": "Rename the instance and change the narration language. The AI provider lives in its own section.",
         "data": {
           "instance_name": "Instance name",
-          "language": "Language",
-          "ai_provider_type": "AI provider",
-          "ai_entity_id": "ai_task entity",
-          "ai_api_key": "API key",
-          "ai_model": "Model"
+          "language": "Language"
         }
       },
-      "logical_day": {
-        "title": "Logical day",
-        "description": "Change which calendar date the brief is about.",
+      "ai_picker": {
+        "title": "AI — pick a provider",
+        "description": "Which model writes the narration? \"Disabled\" produces a brief with empty AI sections. \"HA ai_task\" wraps an existing ai_task entity. Anthropic / OpenAI need a direct API key.",
         "data": {
-          "strategy": "Strategy",
-          "cutoff_hour": "Cutoff hour",
+          "ai_provider_type": "AI provider"
+        }
+      },
+      "ai_ha_ai_task": {
+        "title": "AI — ai_task entity",
+        "description": "Pick an ai_task.* entity already configured in Home Assistant.",
+        "data": {
+          "entity_id": "ai_task entity"
+        }
+      },
+      "ai_anthropic": {
+        "title": "AI — Anthropic (direct key)",
+        "description": "Direct call to api.anthropic.com. The API key is stored on disk — prefer using !secret.",
+        "data": {
+          "api_key": "API key",
+          "model": "Model"
+        }
+      },
+      "ai_openai": {
+        "title": "AI — OpenAI (direct key)",
+        "description": "Direct call to api.openai.com. The API key is stored on disk — prefer using !secret.",
+        "data": {
+          "api_key": "API key",
+          "model": "Model"
+        }
+      },
+      "logical_day_picker": {
+        "title": "Logical day — strategy",
+        "description": "Decide which calendar date the brief is about. \"Fixed cutoff at 4 AM\" works for most setups. \"Sleep sensor\" uses a binary_sensor to detect wake. \"Manual\" requires a service call.",
+        "data": {
+          "strategy": "Strategy"
+        }
+      },
+      "logical_day_fixed_cutoff": {
+        "title": "Logical day — fixed cutoff",
+        "description": "The hour at which the brief considers the calendar day has advanced.",
+        "data": {
+          "cutoff_hour": "Cutoff hour (0-23)"
+        }
+      },
+      "logical_day_sleep_sensor": {
+        "title": "Logical day — sleep sensor",
+        "description": "The brief refers to the day that follows the most recent detected sleep session.",
+        "data": {
           "sleep_sensor_entity": "Sleep sensor",
-          "awake_state": "Awake state",
-          "hard_fallback_hour": "Hard fallback hour"
+          "awake_state": "Awake state value",
+          "hard_fallback_hour": "Hard fallback hour",
+          "lookback_hours": "Lookback hours",
+          "min_sleep_duration_minutes": "Minimum sleep duration (minutes)"
         }
       },
-      "trigger": {
-        "title": "Trigger",
-        "description": "Change when the brief fires.",
+      "trigger_picker": {
+        "title": "Trigger — level",
+        "description": "How should the brief decide when to fire? L1 = fixed schedule, L2 = sensor + delay, L3 = only via service / your own automation.",
         "data": {
-          "trigger_level": "Trigger level",
+          "trigger_level": "Trigger level"
+        }
+      },
+      "trigger_schedule": {
+        "title": "Trigger — fixed schedule",
+        "description": "Daily generation time and which weekdays are active.",
+        "data": {
           "time": "Time",
+          "days_of_week": "Active days"
+        }
+      },
+      "trigger_sensor_based": {
+        "title": "Trigger — sensor-based",
+        "description": "The brief fires once the sensor reaches a given state, with a delay and an hour-of-day fallback.",
+        "data": {
           "trigger_entity_id": "Trigger entity",
           "trigger_to_state": "Trigger state value",
-          "delay_minutes": "Delay (minutes)",
-          "fallback_hour": "Fallback hour"
+          "delay_minutes": "Delay after trigger (minutes)",
+          "fallback_hour": "Fallback hour",
+          "fallback_active": "Enable hour-of-day fallback"
         }
       },
       "notification": {
@@ -196,7 +252,7 @@
       },
       "advanced": {
         "title": "Advanced",
-        "description": "Low-level settings useful for debugging and AI customisation.",
+        "description": "Low-level settings useful for debugging and AI customisation. To see the default prompt currently in use, go back to the menu and pick \"View default AI prompt\".",
         "data": {
           "log_level": "Log level",
           "prompt_template_override": "AI prompt template override",
@@ -209,6 +265,10 @@
           "user_custom_context": "Free-text injected into the prompt as \"user context\". Useful to set tone, flag day-of constraints, etc.",
           "expose_preview_service": "When enabled, morning_brief.preview can be called to generate a brief without persisting it (useful for testing a new prompt)."
         }
+      },
+      "view_default_prompt": {
+        "title": "Default AI prompt ({report_type})",
+        "description": "Here is the Jinja2 prompt currently used to generate the brief. To customise it, copy this, edit it, then paste it into Advanced → AI prompt template override.\n\n```\n{prompt}\n```\n\nSubmit to return to the menu."
       }
     }
   },
@@ -327,6 +387,34 @@
         "morning": "Morning",
         "evening": "Evening",
         "weekly": "Weekly"
+      }
+    },
+    "language": {
+      "options": {
+        "en": "English",
+        "fr": "French"
+      }
+    },
+    "ai_provider_type": {
+      "options": {
+        "disabled": "Disabled (no AI sections)",
+        "ha_ai_task": "HA ai_task (wraps an existing ai_task entity)",
+        "anthropic_direct": "Anthropic (direct API key)",
+        "openai_direct": "OpenAI (direct API key)"
+      }
+    },
+    "logical_day_strategy": {
+      "options": {
+        "fixed_cutoff": "Fixed cutoff (recommended — simple)",
+        "sleep_sensor": "Sleep sensor (binary_sensor)",
+        "manual": "Manual (via the morning_brief.advance_day service)"
+      }
+    },
+    "trigger_level": {
+      "options": {
+        "schedule": "L1 — fixed schedule (cron-style)",
+        "sensor_based": "L2 — sensor-based (with delay + fallback)",
+        "external": "L3 — external (your own automation)"
       }
     }
   },

@@ -23,7 +23,7 @@ def logical_day_schema(initial: dict[str, Any]) -> vol.Schema:
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=list(LOGICAL_DAY_STRATEGIES),
-                    mode=selector.SelectSelectorMode.DROPDOWN,
+                    mode=selector.SelectSelectorMode.LIST,
                     translation_key="logical_day_strategy",
                 )
             ),

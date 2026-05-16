@@ -1,27 +1,24 @@
-# rationale: HA's OptionsFlow is one class — multiple files defining
-# step methods would force mixin gymnastics. The eight sections from
-# Section 20 are kept as methods on a single class here; their schemas
-# live in the per-section sibling files for readability + testability.
+# rationale: ~340 LOC because the options flow now mirrors the
+# config_flow's picker→param split for general/logical_day/trigger/AI,
+# plus 4 standalone option sections. Splitting across files would
+# scatter the back-to-init plumbing.
 """Options-flow handler (Section 20).
 
-Main menu lists 8 sections; each routes to a specific step.
+Main menu lists the 8 sections. Each section that mirrors an
+initial-config-flow step (general, logical_day, trigger, AI inside
+general) follows the same picker → params split — the user only sees
+fields relevant to the picked enum.
 
-Persistence model
------------------
-Sections that mirror initial config_flow fields (``general``,
-``logical_day``, ``trigger``) write directly into ``entry.data`` via
-``hass.config_entries.async_update_entry(data=...)``. This keeps the
-runtime read path simple (it already reads from ``entry.data``) and
-avoids a parallel ``entry.options`` shadow tree that would need its own
-merge logic in the coordinator.
+Persistence model (G17):
+- Sections that mirror the initial config_flow (instance_name,
+  language, AI provider, logical_day, trigger) write to ``entry.data``
+  via ``async_update_entry``. The runtime reads from data, so changes
+  take effect immediately.
+- Sections without a config_flow equivalent (notification, persistence,
+  advanced, reorder_*) live under ``entry.options.<section>``.
 
-Sections that do not exist in initial config_flow (``notification``,
-``persistence``, ``advanced``, ``reorder_*``) live under
-``entry.options.<section>``.
-
-Each step writes its change and returns the user to the main menu —
-they can edit several sections in one open without re-launching the
-dialog. The ``done`` menu option closes the dialog cleanly.
+After every save, the flow returns to the main menu (so the user can
+edit several sections in one open). Selecting "Done" closes cleanly.
 """
 
 from __future__ import annotations
@@ -31,108 +28,115 @@ from typing import Any
 
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.helpers import selector
 
+from .._form_schemas import (
+    ai_anthropic_params,
+    ai_ha_ai_task_params,
+    ai_openai_params,
+    ai_provider_picker,
+    logical_day_fixed_cutoff_params,
+    logical_day_sleep_sensor_params,
+    logical_day_strategy_picker,
+    trigger_level_picker,
+    trigger_schedule_params,
+    trigger_sensor_based_params,
+)
 from ..const import (
-    DEFAULT_CUTOFF_HOUR,
-    DEFAULT_FALLBACK_HOUR,
-    DEFAULT_HARD_FALLBACK_HOUR,
+    AI_PROVIDER_ANTHROPIC_DIRECT,
+    AI_PROVIDER_DISABLED,
+    AI_PROVIDER_HA_AI_TASK,
+    AI_PROVIDER_OPENAI_DIRECT,
     DEFAULT_RETENTION,
-    DEFAULT_SENSOR_BASED_DELAY_MINUTES,
+    LOGICAL_DAY_FIXED_CUTOFF,
+    LOGICAL_DAY_MANUAL,
+    LOGICAL_DAY_SLEEP_SENSOR,
     MAX_RETENTION,
     MIN_RETENTION,
     REPORT_TYPE_MORNING,
+    SUPPORTED_LANGUAGES,
+    TRIGGER_EXTERNAL,
+    TRIGGER_SCHEDULE,
+    TRIGGER_SENSOR_BASED,
 )
-from .advanced import advanced_schema
-from .general import general_schema
-from .logical_day import logical_day_schema
+from .advanced import advanced_schema, current_prompt_text
 from .notification import notification_schema
 from .persistence import persistence_schema
 from .reorder import reorder_categories_schema, reorder_fields_schema
-from .trigger import trigger_schema
 
 _LOGGER = logging.getLogger(__name__)
 
 _MENU_SECTIONS_ALWAYS = (
-    "general",
-    "trigger",
+    "general_basics",
+    "ai_picker",
+    "trigger_picker",
     "notification",
     "persistence",
     "reorder_fields",
     "reorder_categories",
     "advanced",
+    "view_default_prompt",
     "done",
 )
 
 
 class MorningBriefOptionsFlow(config_entries.OptionsFlow):
-    """8-section options flow.
+    """Multi-step options flow with picker→param splits.
 
     HA Core ≥ 2024.12 made ``OptionsFlow.config_entry`` a read-only
-    property injected by the flow manager via ``self._config_entry``;
-    assigning it from a custom ``__init__`` raises AttributeError.
+    property injected by the flow manager via ``self._config_entry`` —
+    do NOT define an ``__init__`` that assigns to ``self.config_entry``
+    (G16).
     """
 
     # ------------------------------------------------------------------ #
-    # Initial values helpers — reconstruct each section's "current" dict
-    # by reading entry.data (for sections that mirror the config_flow)
-    # plus entry.options (for the rest).
+    # Initial values helpers
     # ------------------------------------------------------------------ #
 
-    def _initial_general(self) -> dict[str, Any]:
-        data: dict[str, Any] = dict(self.config_entry.data or {})
-        ai: dict[str, Any] = dict(data.get("ai") or {})
-        ai_cfg: dict[str, Any] = dict(ai.get("config") or {})
+    def _data(self) -> dict[str, Any]:
+        return dict(self.config_entry.data or {})
+
+    def _opts(self) -> dict[str, Any]:
+        return dict(self.config_entry.options or {})
+
+    def _initial_general_basics(self) -> dict[str, Any]:
+        data = self._data()
         return {
             "instance_name": data.get("instance_name", ""),
             "language": data.get("language", "en"),
+        }
+
+    def _initial_ai(self) -> dict[str, Any]:
+        ai: dict[str, Any] = dict(self._data().get("ai") or {})
+        cfg: dict[str, Any] = dict(ai.get("config") or {})
+        return {
             "ai_provider_type": ai.get("provider_type", "disabled"),
-            "ai_entity_id": ai_cfg.get("entity_id", ""),
-            "ai_api_key": ai_cfg.get("api_key", ""),
-            "ai_model": ai_cfg.get("model", ""),
+            "entity_id": cfg.get("entity_id", ""),
+            "api_key": cfg.get("api_key", ""),
+            "model": cfg.get("model", ""),
         }
 
     def _initial_logical_day(self) -> dict[str, Any]:
-        data: dict[str, Any] = dict(self.config_entry.data or {})
-        ld: dict[str, Any] = dict(data.get("logical_day") or {})
+        ld: dict[str, Any] = dict(self._data().get("logical_day") or {})
         cfg: dict[str, Any] = dict(ld.get("config") or {})
-        return {
-            "strategy": ld.get("strategy", "fixed_cutoff"),
-            "cutoff_hour": cfg.get("cutoff_hour", DEFAULT_CUTOFF_HOUR),
-            "sleep_sensor_entity": cfg.get("sleep_sensor_entity", ""),
-            "awake_state": cfg.get("awake_state", "off"),
-            "hard_fallback_hour": cfg.get(
-                "hard_fallback_hour", DEFAULT_HARD_FALLBACK_HOUR
-            ),
-        }
+        return {"strategy": ld.get("strategy", LOGICAL_DAY_FIXED_CUTOFF), **cfg}
 
     def _initial_trigger(self) -> dict[str, Any]:
-        data: dict[str, Any] = dict(self.config_entry.data or {})
-        tr: dict[str, Any] = dict(data.get("trigger") or {})
+        tr: dict[str, Any] = dict(self._data().get("trigger") or {})
         cfg: dict[str, Any] = dict(tr.get("config") or {})
-        return {
-            "trigger_level": tr.get("level", "schedule"),
-            "time": cfg.get("time", "07:30"),
-            "trigger_entity_id": cfg.get("trigger_entity_id", ""),
-            "trigger_to_state": cfg.get("trigger_to_state", "off"),
-            "delay_minutes": cfg.get(
-                "delay_minutes", DEFAULT_SENSOR_BASED_DELAY_MINUTES
-            ),
-            "fallback_hour": cfg.get("fallback_hour", DEFAULT_FALLBACK_HOUR),
-        }
+        return {"trigger_level": tr.get("level", TRIGGER_SCHEDULE), **cfg}
 
     def _initial_option_section(self, section: str) -> dict[str, Any]:
-        opts: dict[str, Any] = dict(self.config_entry.options or {})
-        return dict(opts.get(section) or {})
+        return dict(self._opts().get(section) or {})
 
     def _is_morning(self) -> bool:
         return self.config_entry.data.get("report_type") == REPORT_TYPE_MORNING
 
     # ------------------------------------------------------------------ #
-    # Persisting helpers
+    # Persistence helpers
     # ------------------------------------------------------------------ #
 
     def _save_to_data(self, **updates: Any) -> None:
-        """Patch ``entry.data`` with ``updates`` (shallow merge)."""
         new_data = dict(self.config_entry.data or {})
         new_data.update(updates)
         self.hass.config_entries.async_update_entry(
@@ -140,7 +144,6 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
         )
 
     def _save_to_options(self, section: str, payload: dict[str, Any]) -> None:
-        """Patch ``entry.options[section]`` with ``payload``."""
         new_opts = dict(self.config_entry.options or {})
         new_opts[section] = payload
         self.hass.config_entries.async_update_entry(
@@ -154,84 +157,227 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Show the main menu with all available sections."""
         sections = list(_MENU_SECTIONS_ALWAYS)
         if self._is_morning():
-            sections.insert(1, "logical_day")
+            sections.insert(2, "logical_day_picker")
         return self.async_show_menu(step_id="init", menu_options=sections)
 
-    # Each section step:
-    # - On user_input None: show the form with current values pre-filled
-    # - On user_input set: persist + return to the menu
-
     # ------------------------------------------------------------------ #
-    # General — writes to entry.data (initial_name/language/AI)
+    # General basics — instance_name + language only (AI moved to its own picker)
     # ------------------------------------------------------------------ #
 
-    async def async_step_general(
+    async def async_step_general_basics(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        import voluptuous as vol
+
+        if user_input is not None:
+            self._save_to_data(
+                instance_name=user_input.get("instance_name", ""),
+                language=user_input.get("language", "en"),
+            )
+            return await self.async_step_init()
+        initial = self._initial_general_basics()
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    "instance_name", default=initial.get("instance_name", "")
+                ): selector.TextSelector(
+                    selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+                ),
+                vol.Required(
+                    "language", default=initial.get("language", "en")
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=list(SUPPORTED_LANGUAGES),
+                        mode=selector.SelectSelectorMode.LIST,
+                        translation_key="language",
+                    )
+                ),
+            }
+        )
+        return self.async_show_form(step_id="general_basics", data_schema=schema)
+
+    # ------------------------------------------------------------------ #
+    # AI picker → AI params (split per provider type)
+    # ------------------------------------------------------------------ #
+
+    async def async_step_ai_picker(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if user_input is not None:
-            self._save_general(user_input)
+            provider = user_input["ai_provider_type"]
+            if provider == AI_PROVIDER_DISABLED:
+                self._save_to_data(
+                    ai={"provider_type": AI_PROVIDER_DISABLED, "config": {}}
+                )
+                return await self.async_step_init()
+            if provider == AI_PROVIDER_HA_AI_TASK:
+                return await self.async_step_ai_ha_ai_task()
+            if provider == AI_PROVIDER_ANTHROPIC_DIRECT:
+                return await self.async_step_ai_anthropic()
+            if provider == AI_PROVIDER_OPENAI_DIRECT:
+                return await self.async_step_ai_openai()
             return await self.async_step_init()
         return self.async_show_form(
-            step_id="general",
-            data_schema=general_schema(self._initial_general()),
+            step_id="ai_picker",
+            data_schema=ai_provider_picker(self._initial_ai()),
         )
 
-    def _save_general(self, payload: dict[str, Any]) -> None:
-        ai_provider = payload.get("ai_provider_type", "disabled")
-        ai_cfg: dict[str, Any] = {}
-        if entity_id := payload.get("ai_entity_id"):
-            ai_cfg["entity_id"] = entity_id
-        if api_key := payload.get("ai_api_key"):
-            ai_cfg["api_key"] = api_key
-        if model := payload.get("ai_model"):
-            ai_cfg["model"] = model
-        current_data: dict[str, Any] = dict(self.config_entry.data or {})
-        instance_name = (
-            payload.get("instance_name") or current_data.get("instance_name", "")
-        )
-        self._save_to_data(
-            instance_name=instance_name,
-            language=payload.get("language", "en"),
-            ai={"provider_type": ai_provider, "config": ai_cfg},
-        )
-
-    # ------------------------------------------------------------------ #
-    # Logical day (morning only) — writes to entry.data["logical_day"]
-    # ------------------------------------------------------------------ #
-
-    async def async_step_logical_day(
+    async def async_step_ai_ha_ai_task(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if user_input is not None:
-            strategy = user_input.pop("strategy", "fixed_cutoff")
             self._save_to_data(
-                logical_day={"strategy": strategy, "config": dict(user_input)}
+                ai={
+                    "provider_type": AI_PROVIDER_HA_AI_TASK,
+                    "config": dict(user_input),
+                }
             )
             return await self.async_step_init()
         return self.async_show_form(
-            step_id="logical_day",
-            data_schema=logical_day_schema(self._initial_logical_day()),
+            step_id="ai_ha_ai_task",
+            data_schema=ai_ha_ai_task_params(self._initial_ai()),
         )
 
-    # ------------------------------------------------------------------ #
-    # Trigger — writes to entry.data["trigger"]
-    # ------------------------------------------------------------------ #
-
-    async def async_step_trigger(
+    async def async_step_ai_anthropic(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if user_input is not None:
-            level = user_input.pop("trigger_level", "schedule")
             self._save_to_data(
-                trigger={"level": level, "config": dict(user_input)}
+                ai={
+                    "provider_type": AI_PROVIDER_ANTHROPIC_DIRECT,
+                    "config": dict(user_input),
+                }
             )
             return await self.async_step_init()
         return self.async_show_form(
-            step_id="trigger",
-            data_schema=trigger_schema(self._initial_trigger()),
+            step_id="ai_anthropic",
+            data_schema=ai_anthropic_params(self._initial_ai()),
+        )
+
+    async def async_step_ai_openai(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            self._save_to_data(
+                ai={
+                    "provider_type": AI_PROVIDER_OPENAI_DIRECT,
+                    "config": dict(user_input),
+                }
+            )
+            return await self.async_step_init()
+        return self.async_show_form(
+            step_id="ai_openai",
+            data_schema=ai_openai_params(self._initial_ai()),
+        )
+
+    # ------------------------------------------------------------------ #
+    # Logical-day picker → params (morning only)
+    # ------------------------------------------------------------------ #
+
+    async def async_step_logical_day_picker(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            strategy = user_input["strategy"]
+            if strategy == LOGICAL_DAY_FIXED_CUTOFF:
+                return await self.async_step_logical_day_fixed_cutoff()
+            if strategy == LOGICAL_DAY_SLEEP_SENSOR:
+                return await self.async_step_logical_day_sleep_sensor()
+            self._save_to_data(
+                logical_day={"strategy": LOGICAL_DAY_MANUAL, "config": {}}
+            )
+            return await self.async_step_init()
+        return self.async_show_form(
+            step_id="logical_day_picker",
+            data_schema=logical_day_strategy_picker(self._initial_logical_day()),
+        )
+
+    async def async_step_logical_day_fixed_cutoff(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            self._save_to_data(
+                logical_day={
+                    "strategy": LOGICAL_DAY_FIXED_CUTOFF,
+                    "config": dict(user_input),
+                }
+            )
+            return await self.async_step_init()
+        return self.async_show_form(
+            step_id="logical_day_fixed_cutoff",
+            data_schema=logical_day_fixed_cutoff_params(self._initial_logical_day()),
+        )
+
+    async def async_step_logical_day_sleep_sensor(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            self._save_to_data(
+                logical_day={
+                    "strategy": LOGICAL_DAY_SLEEP_SENSOR,
+                    "config": dict(user_input),
+                }
+            )
+            return await self.async_step_init()
+        return self.async_show_form(
+            step_id="logical_day_sleep_sensor",
+            data_schema=logical_day_sleep_sensor_params(self._initial_logical_day()),
+        )
+
+    # ------------------------------------------------------------------ #
+    # Trigger picker → params
+    # ------------------------------------------------------------------ #
+
+    async def async_step_trigger_picker(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            level = user_input["trigger_level"]
+            if level == TRIGGER_SCHEDULE:
+                return await self.async_step_trigger_schedule()
+            if level == TRIGGER_SENSOR_BASED:
+                return await self.async_step_trigger_sensor_based()
+            self._save_to_data(
+                trigger={"level": TRIGGER_EXTERNAL, "config": {}}
+            )
+            return await self.async_step_init()
+        return self.async_show_form(
+            step_id="trigger_picker",
+            data_schema=trigger_level_picker(self._initial_trigger()),
+        )
+
+    async def async_step_trigger_schedule(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            self._save_to_data(
+                trigger={
+                    "level": TRIGGER_SCHEDULE,
+                    "config": dict(user_input),
+                }
+            )
+            return await self.async_step_init()
+        return self.async_show_form(
+            step_id="trigger_schedule",
+            data_schema=trigger_schedule_params(self._initial_trigger()),
+        )
+
+    async def async_step_trigger_sensor_based(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            self._save_to_data(
+                trigger={
+                    "level": TRIGGER_SENSOR_BASED,
+                    "config": dict(user_input),
+                }
+            )
+            return await self.async_step_init()
+        return self.async_show_form(
+            step_id="trigger_sensor_based",
+            data_schema=trigger_sensor_based_params(self._initial_trigger()),
         )
 
     # ------------------------------------------------------------------ #
@@ -246,7 +392,9 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
             return await self.async_step_init()
         return self.async_show_form(
             step_id="notification",
-            data_schema=notification_schema(self._initial_option_section("notification")),
+            data_schema=notification_schema(
+                self._initial_option_section("notification")
+            ),
         )
 
     # ------------------------------------------------------------------ #
@@ -263,7 +411,9 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
             return await self.async_step_init()
         return self.async_show_form(
             step_id="persistence",
-            data_schema=persistence_schema(self._initial_option_section("persistence")),
+            data_schema=persistence_schema(
+                self._initial_option_section("persistence")
+            ),
         )
 
     # ------------------------------------------------------------------ #
@@ -279,7 +429,6 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="reorder_fields",
             data_schema=reorder_fields_schema(self.config_entry),
-            description_placeholders={"count": str(self._count_subentries("field"))},
         )
 
     async def async_step_reorder_categories(
@@ -291,16 +440,6 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="reorder_categories",
             data_schema=reorder_categories_schema(self.config_entry),
-            description_placeholders={
-                "count": str(self._count_subentries("category"))
-            },
-        )
-
-    def _count_subentries(self, subentry_type: str) -> int:
-        subs = getattr(self.config_entry, "subentries", {}) or {}
-        items = list(subs.values()) if isinstance(subs, dict) else list(subs)
-        return sum(
-            1 for s in items if getattr(s, "subentry_type", None) == subentry_type
         )
 
     # ------------------------------------------------------------------ #
@@ -319,18 +458,41 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
         )
 
     # ------------------------------------------------------------------ #
-    # Done — close the dialog cleanly
+    # View default prompt — read-only display
+    # ------------------------------------------------------------------ #
+
+    async def async_step_view_default_prompt(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show the default Jinja2 prompt for this instance's report_type.
+
+        Read-only. The user can copy it into the Advanced section's
+        prompt_template_override if they want to customize it.
+        """
+        import voluptuous as vol
+
+        if user_input is not None:
+            return await self.async_step_init()
+        report_type = str(self._data().get("report_type") or REPORT_TYPE_MORNING)
+        prompt = await self.hass.async_add_executor_job(
+            current_prompt_text, report_type
+        )
+        return self.async_show_form(
+            step_id="view_default_prompt",
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                "report_type": report_type,
+                "prompt": prompt,
+            },
+        )
+
+    # ------------------------------------------------------------------ #
+    # Done — close the dialog
     # ------------------------------------------------------------------ #
 
     async def async_step_done(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """No-op step that finalises the options flow.
-
-        Each section already persisted its changes via async_update_entry,
-        so we just need a clean exit. We call async_create_entry with the
-        current options dict to satisfy HA's flow lifecycle.
-        """
         return self.async_create_entry(
             title="", data=dict(self.config_entry.options or {})
         )

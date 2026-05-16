@@ -6,6 +6,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0-rc.5] — 2026-05-16
+
+### Fixed (second live-HA pass)
+
+- **« + Ajouter un sous-élément » introuvable** — `manifest.json`
+  déclarait `supported_subentry_types: ["field", "category"]` mais la
+  ConfigFlow n'exposait aucune mapping vers les classes. HA ne pouvait
+  donc afficher aucun bouton d'ajout. Ajout de la classmethod
+  `async_get_supported_subentry_types(cls, config_entry)` qui retourne
+  le dict `SUBENTRY_FLOWS`. Gotcha G22 ajoutée pour ne pas re-zapper
+  ce wiring.
+- **Champs hors-contexte dans Options** — la section "Général" affichait
+  AI provider + AI entity + AI key + AI model tous ensemble. Idem pour
+  logical_day et trigger qui montraient tous les params possibles. Split
+  en pickers + param steps comme le config_flow (ai_picker → ai_<provider>,
+  logical_day_picker → logical_day_<strategy>, trigger_picker →
+  trigger_<level>). Le user ne voit que les champs pertinents pour son
+  choix.
+- **Code dupliqué config_flow / options_flow** — les schemas paramétrés
+  vivent maintenant dans `_form_schemas.py`, importés par les deux
+  flows. Une modif d'un schéma se reflète automatiquement dans la
+  création ET dans l'édition.
+- **Dropdowns pour 2-5 options** — passé tous les SelectSelector courts
+  (report_type, language, ai_provider_type, logical_day_strategy,
+  trigger_level, log_level) en `mode=LIST` (radio buttons). Plus
+  ergonomique pour les enums fermés.
+- **Translations selector manquantes** — ajout des blocs
+  `selector.<key>.options.<value>` pour language, ai_provider_type,
+  logical_day_strategy, trigger_level (les radio buttons affichaient
+  les valeurs brutes type "fixed_cutoff").
+- **Pas de visualisation du prompt par défaut** — nouvelle entrée du
+  menu "Voir le prompt IA par défaut" qui affiche en read-only le
+  Jinja2 actuellement utilisé pour ce report_type. Le user peut copier
+  → modifier → coller dans Avancé → Surcharge.
+- **Reorder messages** — gardés tels quels, ils ont maintenant du sens
+  puisque le bouton "+ Ajouter un sous-élément" est exposé.
+
+### Known limitation
+
+- **Pas de "Retour" explicite dans les sections Options.** HA n'expose
+  pas de bouton "Back" natif dans les forms. Pour annuler une section
+  en cours d'édition, fermer la fenêtre via la croix en haut. Après
+  validation, on revient au menu init. Implémenter un menu wrapper
+  [Edit/Cancel] avant chaque section coûterait trop de complexité pour
+  un compromis incertain — déféré.
+
+### Changed
+
+- Bump manifest.json version `1.0.0rc4` → `1.0.0rc5`.
+
 ## [1.0.0-rc.4] — 2026-05-16
 
 ### Fixed

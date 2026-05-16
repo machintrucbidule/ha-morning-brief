@@ -24,7 +24,7 @@ def trigger_schema(initial: dict[str, Any]) -> vol.Schema:
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=list(TRIGGER_LEVELS),
-                    mode=selector.SelectSelectorMode.DROPDOWN,
+                    mode=selector.SelectSelectorMode.LIST,
                     translation_key="trigger_level",
                 )
             ),

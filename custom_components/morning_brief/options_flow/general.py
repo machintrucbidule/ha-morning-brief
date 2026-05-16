@@ -28,7 +28,7 @@ def general_schema(initial: dict[str, Any]) -> vol.Schema:
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=list(SUPPORTED_LANGUAGES),
-                    mode=selector.SelectSelectorMode.DROPDOWN,
+                    mode=selector.SelectSelectorMode.LIST,
                     translation_key="language",
                 )
             ),
@@ -37,7 +37,7 @@ def general_schema(initial: dict[str, Any]) -> vol.Schema:
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=list(AI_PROVIDER_TYPES),
-                    mode=selector.SelectSelectorMode.DROPDOWN,
+                    mode=selector.SelectSelectorMode.LIST,
                     translation_key="ai_provider_type",
                 )
             ),

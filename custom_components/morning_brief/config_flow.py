@@ -88,7 +88,7 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required("report_type"): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=list(REPORT_TYPES),
-                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            mode=selector.SelectSelectorMode.LIST,
                             translation_key="report_type",
                         )
                     ),
@@ -124,7 +124,7 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=list(SUPPORTED_LANGUAGES),
-                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            mode=selector.SelectSelectorMode.LIST,
                             translation_key="language",
                         )
                     ),
@@ -158,7 +158,7 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=list(LOGICAL_DAY_STRATEGIES),
-                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            mode=selector.SelectSelectorMode.LIST,
                             translation_key="logical_day_strategy",
                         )
                     ),
@@ -268,7 +268,7 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=list(TRIGGER_LEVELS),
-                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            mode=selector.SelectSelectorMode.LIST,
                             translation_key="trigger_level",
                         )
                     ),
@@ -385,7 +385,7 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=list(AI_PROVIDER_TYPES),
-                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            mode=selector.SelectSelectorMode.LIST,
                             translation_key="ai_provider_type",
                         )
                     ),
@@ -527,3 +527,22 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         from .options_flow import MorningBriefOptionsFlow
 
         return MorningBriefOptionsFlow()
+
+    # ------------------------------------------------------------------ #
+    # Subentry flows registration (D3, Section 21)
+    # ------------------------------------------------------------------ #
+
+    @classmethod
+    def async_get_supported_subentry_types(
+        cls, config_entry: config_entries.ConfigEntry
+    ) -> dict[str, type]:
+        """Expose the subentry flow handlers to HA's UI.
+
+        Without this classmethod, HA reads `manifest.json
+        supported_subentry_types` but has no mapping to the actual flow
+        classes — the "+ Add sub-item" buttons never appear on the
+        integration's device page (G22). Required since HA Core ≥ 2024.11.
+        """
+        from .subentries import SUBENTRY_FLOWS
+
+        return SUBENTRY_FLOWS
