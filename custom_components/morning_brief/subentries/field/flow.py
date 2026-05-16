@@ -43,18 +43,26 @@ else:
 _LOGGER = logging.getLogger(__name__)
 
 
-def _category_ids(config_entry: config_entries.ConfigEntry) -> list[str]:
-    """Pull category ids from the parent entry's category subentries."""
+def _categories(
+    config_entry: config_entries.ConfigEntry | None,
+) -> list[tuple[str, str]]:
+    """Pull (category_id, display_label) tuples from the parent entry."""
+    if config_entry is None:
+        return []
     subentries = getattr(config_entry, "subentries", {}) or {}
     items = subentries.values() if isinstance(subentries, dict) else subentries
-    out: list[str] = []
+    out: list[tuple[str, str]] = []
     for sub in items:
         if getattr(sub, "subentry_type", None) != "category":
             continue
         data = getattr(sub, "data", {}) or {}
         cid = data.get("category_id") or data.get("id")
-        if cid:
-            out.append(str(cid))
+        if not cid:
+            continue
+        label = (
+            data.get("label") or getattr(sub, "title", None) or str(cid)
+        )
+        out.append((str(cid), str(label)))
     return out
 
 
@@ -94,13 +102,13 @@ class FieldSubentryFlow(_SubentryBase):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Step 3 — label / icon / category / unit / direction_preference."""
-        category_ids = _category_ids(self._get_entry())
+        categories = _categories(self._get_entry())
         if user_input is not None:
             self._draft.update(user_input)
             return await self.async_step_comparisons()
         return self.async_show_form(
             step_id="display",
-            data_schema=display_schema(self._draft, category_ids),
+            data_schema=display_schema(self._draft, categories),
         )
 
     async def async_step_comparisons(
@@ -189,13 +197,44 @@ class FieldSubentryFlow(_SubentryBase):
             step_id="gate", data_schema=gate_schema(self._draft)
         )
 
-    def _get_entry(self) -> config_entries.ConfigEntry:
-        """Resolve the parent config entry for category lookups."""
-        # ConfigSubentryFlow exposes `config_entry` on newer HA versions.
+    def _get_entry(self) -> config_entries.ConfigEntry | None:
+        """Resolve the parent config entry for category lookups.
+
+        HA exposes the parent entry through several attribute names
+        across versions — try them all defensively. Returns None only on
+        very old HA where SubentryFlow isn't even available.
+        """
+        # HA ≥ 2025.x: source_entry is set by the flow manager on add/edit
+        entry = getattr(self, "source_entry", None)
+        if entry is not None:
+            return entry  # type: ignore[no-any-return]
+        # Some versions expose it as config_entry (when not in reconfigure mode)
         entry = getattr(self, "config_entry", None)
-        if entry is None:
-            entry = getattr(self, "source_entry", None)
-        return entry  # type: ignore[return-value]
+        if entry is not None and not isinstance(entry, str):
+            return entry  # type: ignore[no-any-return]
+        # Fallback: derive from the flow context
+        ctx = getattr(self, "context", {}) or {}
+        entry_id = ctx.get("source_entry_id") or ctx.get("entry_id")
+        hass = getattr(self, "hass", None)
+        if entry_id and hass is not None:
+            return hass.config_entries.async_get_entry(entry_id)  # type: ignore[no-any-return]
+        return None
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Entry point when the user clicks "Reconfigure" on a field subentry.
+
+        Pre-populate the draft from the existing subentry's data so the
+        7-step flow restarts with all the user's prior values as defaults.
+        """
+        try:
+            subentry = self._get_reconfigure_subentry()  # type: ignore[attr-defined]
+        except AttributeError:
+            subentry = None
+        if subentry is not None:
+            self._draft = dict(getattr(subentry, "data", {}) or {})
+        return await self.async_step_user(user_input)
 
 
 # Silence unused-import for json (reserved for future state_mapping parsing).

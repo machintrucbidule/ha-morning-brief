@@ -2,6 +2,11 @@
 
 The flow handler (``flow.py``) picks the right schema once
 ``provider_type`` is known and presents the corresponding extra fields.
+
+Every entity-pointing input uses ``selector.EntitySelector`` (G18) so the
+user picks from a dropdown of HA entities, never a free-text field.
+Every enum uses ``selector.SelectSelector`` with translation_key so the
+options display as human-readable labels.
 """
 
 from __future__ import annotations
@@ -9,6 +14,7 @@ from __future__ import annotations
 from typing import Any
 
 import voluptuous as vol
+from homeassistant.helpers import selector
 
 from ...const import (
     ANOMALY_MODES,
@@ -46,11 +52,19 @@ def identity_schema(current: dict[str, Any]) -> vol.Schema:
     """Step 1 — entity_id + provider_type."""
     return vol.Schema(
         {
-            vol.Required("entity_id", default=current.get("entity_id", "")): str,
+            vol.Required(
+                "entity_id", default=current.get("entity_id", "")
+            ): selector.EntitySelector(selector.EntitySelectorConfig()),
             vol.Required(
                 "provider_type",
                 default=current.get("provider_type", PROVIDER_INSTANTANEOUS),
-            ): vol.In(list(PROVIDER_TYPES)),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=list(PROVIDER_TYPES),
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                    translation_key="provider_type",
+                )
+            ),
         }
     )
 
@@ -58,102 +72,234 @@ def identity_schema(current: dict[str, Any]) -> vol.Schema:
 def provider_params_schema(
     provider_type: str, current: dict[str, Any]
 ) -> vol.Schema:
-    """Step 2 — provider-specific params (the ``provider_config`` block)."""
+    """Step 2 — provider-specific params (the ``provider_config`` block).
+
+    ``current`` includes the previously-picked ``entity_id`` (from step 1)
+    so we can target ``AttributeSelector`` at the right entity when
+    needed.
+    """
     pc = dict(current.get("provider_config") or {})
+    entity_id = str(current.get("entity_id") or "")
+
     if provider_type == PROVIDER_CUMULATIVE:
         return vol.Schema(
             {
-                vol.Optional("reset_hour", default=pc.get("reset_hour", 0)): vol.All(
-                    int, vol.Range(min=0, max=23)
+                vol.Optional(
+                    "reset_hour", default=int(pc.get("reset_hour", 0))
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0, max=23, step=1, mode=selector.NumberSelectorMode.BOX
+                    )
                 ),
             }
         )
     if provider_type == PROVIDER_INSTANTANEOUS:
         return vol.Schema(
             {
-                vol.Optional("aggregation", default=pc.get("aggregation", "mean")): vol.In(
-                    ["mean", "last"]
+                vol.Optional(
+                    "aggregation", default=pc.get("aggregation", "mean")
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=["mean", "last"],
+                        mode=selector.SelectSelectorMode.LIST,
+                        translation_key="instantaneous_aggregation",
+                    )
                 ),
                 vol.Optional(
-                    "window_hours_today", default=pc.get("window_hours_today", 24)
-                ): vol.All(int, vol.Range(min=1, max=72)),
+                    "window_hours_today",
+                    default=int(pc.get("window_hours_today", 24)),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=1, max=72, step=1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
             }
         )
     if provider_type == PROVIDER_EVENT_BASED:
         return vol.Schema(
             {
-                vol.Optional("epsilon", default=float(pc.get("epsilon", 0.0))): vol.All(
-                    vol.Coerce(float), vol.Range(min=0)
+                vol.Optional(
+                    "epsilon", default=float(pc.get("epsilon", 0.0))
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0, step=0.001, mode=selector.NumberSelectorMode.BOX
+                    )
                 ),
                 vol.Optional(
                     "min_debounce_minutes",
                     default=int(pc.get("min_debounce_minutes", 5)),
-                ): vol.All(int, vol.Range(min=0)),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0, max=240, step=1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
             }
         )
     if provider_type == PROVIDER_DURATION:
+        # Choose how to measure the "since" timestamp:
+        # - input_datetime  → the entity IS the reference timestamp (use input_datetime.* entities directly)
+        # - sensor_last_changed → use the sensor's last_changed metadata
+        # - sensor_attribute_datetime → read a datetime from an attribute of the sensor
+        attribute_selector: Any
+        if entity_id:
+            attribute_selector = selector.AttributeSelector(
+                selector.AttributeSelectorConfig(entity_id=entity_id)
+            )
+        else:
+            attribute_selector = selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+            )
         return vol.Schema(
             {
                 vol.Required(
                     "source_type",
                     default=pc.get("source_type", "input_datetime"),
-                ): vol.In(
-                    ["input_datetime", "sensor_last_changed", "sensor_attribute_datetime"]
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            "input_datetime",
+                            "sensor_last_changed",
+                            "sensor_attribute_datetime",
+                        ],
+                        mode=selector.SelectSelectorMode.LIST,
+                        translation_key="duration_source_type",
+                    )
                 ),
                 vol.Optional(
                     "attribute_name", default=pc.get("attribute_name", "")
-                ): str,
+                ): attribute_selector,
                 vol.Optional(
                     "display_unit", default=pc.get("display_unit", "auto")
-                ): vol.In(["auto", "days", "hours", "minutes"]),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=["auto", "days", "hours", "minutes"],
+                        mode=selector.SelectSelectorMode.LIST,
+                        translation_key="duration_display_unit",
+                    )
+                ),
             }
         )
     if provider_type == PROVIDER_STATE:
         return vol.Schema(
-            {vol.Optional("state_mapping_json", default=""): str}
+            {
+                vol.Optional(
+                    "state_mapping_json", default=pc.get("state_mapping_json", "")
+                ): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT, multiline=True
+                    )
+                ),
+            }
         )
     if provider_type == PROVIDER_CALENDAR:
         return vol.Schema(
             {
-                vol.Optional("summary_regex", default=pc.get("summary_regex", "")): str,
-                vol.Optional("window_days", default=int(pc.get("window_days", 7))): vol.All(
-                    int, vol.Range(min=1, max=365)
+                vol.Optional(
+                    "summary_regex", default=pc.get("summary_regex", "")
+                ): selector.TextSelector(
+                    selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
                 ),
-                vol.Optional("max_events", default=int(pc.get("max_events", 1))): vol.All(
-                    int, vol.Range(min=1, max=20)
+                vol.Optional(
+                    "window_days", default=int(pc.get("window_days", 7))
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=1, max=365, step=1, mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(
+                    "max_events", default=int(pc.get("max_events", 1))
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=1, max=20, step=1, mode=selector.NumberSelectorMode.BOX
+                    )
                 ),
             }
         )
     if provider_type == PROVIDER_WEATHER:
         return vol.Schema(
-            {vol.Optional("source_format", default=pc.get("source_format", "")): str}
+            {
+                vol.Optional(
+                    "source_format",
+                    default=pc.get("source_format", "ha_weather"),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=["ha_weather", "structured_attributes"],
+                        mode=selector.SelectSelectorMode.LIST,
+                        translation_key="weather_source_format",
+                    )
+                ),
+            }
         )
     if provider_type == PROVIDER_MANUAL:
         return vol.Schema(
             {
-                vol.Optional("value_type", default=pc.get("value_type", "number")): vol.In(
-                    ["number", "text", "datetime"]
+                vol.Optional(
+                    "value_type", default=pc.get("value_type", "number")
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=["number", "text", "datetime"],
+                        mode=selector.SelectSelectorMode.LIST,
+                        translation_key="manual_value_type",
+                    )
                 ),
             }
         )
     return vol.Schema({})
 
 
-def display_schema(current: dict[str, Any], category_ids: list[str]) -> vol.Schema:
-    """Step 3 — label / icon / category_id / unit / direction_preference."""
-    choices = category_ids or ["uncategorised"]
+def display_schema(
+    current: dict[str, Any], categories: list[tuple[str, str]]
+) -> vol.Schema:
+    """Step 3 — label / icon / category_id / unit / direction_preference.
+
+    ``categories`` is a list of (category_id, display_label) tuples so
+    the user picks from human-readable names, not raw slugs.
+    """
+    if categories:
+        options = [
+            selector.SelectOptionDict(value=cid, label=label)
+            for cid, label in categories
+        ]
+        default_cid = current.get("category_id", categories[0][0])
+    else:
+        options = [
+            selector.SelectOptionDict(
+                value="uncategorised", label="(no category yet — create one first)"
+            )
+        ]
+        default_cid = "uncategorised"
+
     return vol.Schema(
         {
-            vol.Required("label", default=current.get("label", "")): str,
-            vol.Optional("icon", default=current.get("icon", "")): str,
+            vol.Required("label", default=current.get("label", "")): selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+            ),
+            vol.Optional(
+                "icon", default=current.get("icon", "")
+            ): selector.IconSelector(),
             vol.Required(
-                "category_id", default=current.get("category_id", choices[0])
-            ): vol.In(choices),
-            vol.Optional("unit", default=current.get("unit", "")): str,
+                "category_id", default=default_cid
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Optional(
+                "unit", default=current.get("unit", "")
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+            ),
             vol.Optional(
                 "direction_preference",
                 default=current.get("direction_preference", DIRECTION_NEUTRAL),
-            ): vol.In(list(DIRECTION_PREFERENCES)),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=list(DIRECTION_PREFERENCES),
+                    mode=selector.SelectSelectorMode.LIST,
+                    translation_key="direction_preference",
+                )
+            ),
         }
     )
 
@@ -165,7 +311,14 @@ def comparisons_schema(current: dict[str, Any]) -> vol.Schema:
         {
             vol.Optional(
                 "enabled_comparisons", default=sorted(enabled)
-            ): [vol.In(list(COMPARISON_TYPES))],
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=list(COMPARISON_TYPES),
+                    multiple=True,
+                    mode=selector.SelectSelectorMode.LIST,
+                    translation_key="comparison_type",
+                )
+            ),
             vol.Optional(
                 "rolling_window_days",
                 default=int(
@@ -178,10 +331,18 @@ def comparisons_schema(current: dict[str, Any]) -> vol.Schema:
                         14,
                     )
                 ),
-            ): vol.All(int, vol.Range(min=3, max=90)),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=3, max=90, step=1, mode=selector.NumberSelectorMode.BOX
+                )
+            ),
             vol.Optional(
-                "target_value", default=current.get("target_value", 0.0)
-            ): vol.Coerce(float),
+                "target_value", default=float(current.get("target_value", 0.0))
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    step=0.01, mode=selector.NumberSelectorMode.BOX
+                )
+            ),
         }
     )
 
@@ -191,21 +352,55 @@ def anomaly_schema(current: dict[str, Any]) -> vol.Schema:
     ad = current.get("anomaly_detection") or {}
     return vol.Schema(
         {
-            vol.Optional("mode", default=ad.get("mode", ANOMALY_NONE)): vol.In(
-                list(ANOMALY_MODES)
+            vol.Optional(
+                "mode", default=ad.get("mode", ANOMALY_NONE)
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=list(ANOMALY_MODES),
+                    mode=selector.SelectSelectorMode.LIST,
+                    translation_key="anomaly_mode",
+                )
             ),
-            vol.Optional("sigmas", default=float(ad.get("sigmas", 2.0))): vol.All(
-                vol.Coerce(float), vol.Range(min=0.5, max=10)
+            vol.Optional(
+                "sigmas", default=float(ad.get("sigmas", 2.0))
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0.5, max=10, step=0.1, mode=selector.NumberSelectorMode.BOX
+                )
             ),
-            vol.Optional("window_days", default=int(ad.get("window_days", 14))): vol.All(
-                int, vol.Range(min=3, max=90)
+            vol.Optional(
+                "window_days", default=int(ad.get("window_days", 14))
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=3, max=90, step=1, mode=selector.NumberSelectorMode.BOX
+                )
             ),
-            vol.Optional("min_value", default=ad.get("min_value", "")): str,
-            vol.Optional("max_value", default=ad.get("max_value", "")): str,
-            vol.Optional("pct", default=float(ad.get("pct", 0.0))): vol.Coerce(float),
+            vol.Optional(
+                "min_value", default=str(ad.get("min_value") or "")
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+            ),
+            vol.Optional(
+                "max_value", default=str(ad.get("max_value") or "")
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+            ),
+            vol.Optional(
+                "pct", default=float(ad.get("pct", 0.0))
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    step=0.1, mode=selector.NumberSelectorMode.BOX
+                )
+            ),
             vol.Optional(
                 "severity", default=ad.get("severity", ANOMALY_SEVERITY_WARNING)
-            ): vol.In(list(ANOMALY_SEVERITIES)),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=list(ANOMALY_SEVERITIES),
+                    mode=selector.SelectSelectorMode.LIST,
+                    translation_key="anomaly_severity",
+                )
+            ),
         }
     )
 
@@ -216,15 +411,34 @@ def visibility_schema(current: dict[str, Any]) -> vol.Schema:
         {
             vol.Optional(
                 "visible_in", default=current.get("visible_in", list(REPORT_TYPES))
-            ): [vol.In(list(REPORT_TYPES))],
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=list(REPORT_TYPES),
+                    multiple=True,
+                    mode=selector.SelectSelectorMode.LIST,
+                    translation_key="report_type",
+                )
+            ),
             vol.Optional(
                 "weekly_aggregation",
                 default=current.get("weekly_aggregation", WEEKLY_AGG_MEAN),
-            ): vol.In(list(WEEKLY_AGGREGATIONS)),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=list(WEEKLY_AGGREGATIONS),
+                    mode=selector.SelectSelectorMode.LIST,
+                    translation_key="weekly_aggregation",
+                )
+            ),
             vol.Optional(
                 "ai_insight_policy",
                 default=current.get("ai_insight_policy", "optional"),
-            ): vol.In(["optional", "required", "forbidden"]),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=["optional", "required", "forbidden"],
+                    mode=selector.SelectSelectorMode.LIST,
+                    translation_key="ai_insight_policy",
+                )
+            ),
         }
     )
 
@@ -234,9 +448,16 @@ def gate_schema(current: dict[str, Any]) -> vol.Schema:
     gate = current.get("availability_gate") or {}
     return vol.Schema(
         {
-            vol.Optional("gate_entity_id", default=gate.get("entity_id", "")): str,
             vol.Optional(
-                "gate_expected_state", default=gate.get("expected_state", "off")
-            ): str,
+                "gate_entity_id", default=gate.get("entity_id", "")
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="binary_sensor")
+            ),
+            vol.Optional(
+                "gate_expected_state",
+                default=gate.get("expected_state", "off"),
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+            ),
         }
     )

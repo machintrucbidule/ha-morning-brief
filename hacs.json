@@ -3,6 +3,5 @@
   "render_readme": true,
   "homeassistant": "2025.1.0",
   "country": ["FR", "US", "GB"],
-  "zip_release": false,
-  "filename": "morning_brief.zip"
+  "hide_default_branch": true
 }

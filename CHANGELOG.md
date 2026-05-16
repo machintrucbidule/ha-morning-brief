@@ -6,6 +6,59 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0-rc.6] — 2026-05-16
+
+### Fixed (live-HA pass #4 — multiple subentry + selectors issues)
+
+- **HACS proposait le SHA du dernier commit comme MAJ disponible** au lieu
+  de la dernière release tag. Ajout de `"hide_default_branch": true` dans
+  `hacs.json` (HACS ne suit plus la branche main, seulement les releases).
+- **Boutons "+" pour ajouter Champ / Catégorie affichés sans texte.**
+  Manquait `config_subentries.<type>.initiate_flow.user` + `entry_type`
+  dans les translations. Ajout en FR + EN.
+- **Création d'instance avec trigger `schedule` → "expected str".**
+  `days_of_week` avait son default à `list(range(7))` (entiers) alors
+  que les `SelectOptionDict` ont `value="0"` (strings). Helper
+  `_normalise_days` qui coerce en strings.
+- **Dropdown "Catégorie" du field flow affichait "uncategorised" malgré
+  les catégories existantes.** Fix multi-points: (a) `_categories()`
+  retourne maintenant des `(category_id, label)` tuples au lieu d'IDs
+  bruts, (b) `_get_entry()` essaie plusieurs noms d'attribut (HA en a
+  changé entre versions), (c) `display_schema` reçoit des
+  `SelectOptionDict(value, label)` au lieu de `vol.In(strings)`.
+- **Champs sensor/attribute en texte brut dans le field flow.**
+  Réécriture complète de `subentries/field/schema.py` avec selectors
+  HA partout: `EntitySelector` pour entity_id et gate_entity_id,
+  `AttributeSelector` (lié à l'entity_id du draft) pour
+  `attribute_name` du provider duration, `NumberSelector` /
+  `SelectSelector` / `IconSelector` / `BooleanSelector` partout
+  où c'est pertinent. Plus aucun `str` à part les libellés/icônes.
+- **copy_from affichait les `entry_id` bruts** (type "01HXYZABCDEF").
+  Le dropdown utilise maintenant `SelectOptionDict(value=entry_id,
+  label=entry.title)` — le user voit les noms d'instance.
+- **Édition d'une catégorie/champ ne laissait modifier que le titre.**
+  Ajout d'`async_step_reconfigure` sur les deux flows: il pre-popule
+  `self._draft` depuis la subentry existante puis relance le flow
+  habituel avec les valeurs courantes comme défauts.
+- **Translations selector incomplètes** — radio buttons affichaient
+  `cumulative`, `fixed_cutoff`, etc. brut. Ajout des blocs
+  `selector.<key>.options` pour: provider_type, duration_source_type,
+  duration_display_unit, weather_source_format, manual_value_type,
+  instantaneous_aggregation, direction_preference, comparison_type,
+  anomaly_mode, anomaly_severity, weekly_aggregation, ai_insight_policy
+  (FR + EN, 12 blocs chacun).
+
+### Added (process)
+
+- **Test pytest `test_translations_completeness.py`** — vérifie que
+  chaque `translation_key=` du code Python a sa clé dans `selector.X`
+  des deux langues, et que les keys EN/FR matchent (R13). CI échouera
+  désormais si un selector est introduit sans translation.
+
+### Changed
+
+- Bump manifest.json version `1.0.0rc5` → `1.0.0rc6`.
+
 ## [1.0.0-rc.5] — 2026-05-16
 
 ### Fixed (second live-HA pass)

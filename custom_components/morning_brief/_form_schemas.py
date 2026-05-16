@@ -163,6 +163,17 @@ def logical_day_sleep_sensor_params(initial: dict[str, Any]) -> vol.Schema:
 # ---------------------------------------------------------------------------
 
 
+_ALL_WEEKDAY_VALUES = ["0", "1", "2", "3", "4", "5", "6"]
+
+
+def _normalise_days(value: Any) -> list[str]:
+    """Coerce day-of-week list to strings (HA stores them as ints in older
+    config, but the SelectOptionDict values are str)."""
+    if not isinstance(value, list):
+        return list(_ALL_WEEKDAY_VALUES)
+    return [str(v) for v in value]
+
+
 def trigger_schedule_params(initial: dict[str, Any]) -> vol.Schema:
     return vol.Schema(
         {
@@ -171,9 +182,7 @@ def trigger_schedule_params(initial: dict[str, Any]) -> vol.Schema:
             ): selector.TimeSelector(),
             vol.Optional(
                 "days_of_week",
-                default=initial.get(
-                    "days_of_week", ["0", "1", "2", "3", "4", "5", "6"]
-                ),
+                default=_normalise_days(initial.get("days_of_week")),
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[

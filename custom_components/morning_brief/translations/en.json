@@ -274,6 +274,11 @@
   },
   "config_subentries": {
     "field": {
+      "initiate_flow": {
+        "user": "Add field",
+        "reconfigure": "Reconfigure field"
+      },
+      "entry_type": "Morning Brief field",
       "step": {
         "user": {
           "title": "Field — source",
@@ -333,6 +338,11 @@
       }
     },
     "category": {
+      "initiate_flow": {
+        "user": "Add category",
+        "reconfigure": "Reconfigure category"
+      },
+      "entry_type": "Morning Brief category",
       "step": {
         "user": {
           "title": "Category",
@@ -415,6 +425,103 @@
         "schedule": "L1 — fixed schedule (cron-style)",
         "sensor_based": "L2 — sensor-based (with delay + fallback)",
         "external": "L3 — external (your own automation)"
+      }
+    },
+    "provider_type": {
+      "options": {
+        "cumulative": "Cumulative — counter that resets (steps, kWh, sleep minutes)",
+        "instantaneous": "Instantaneous — value read at the moment (temperature, HR, weight)",
+        "event_based": "Event-based — sensor that only changes on events (Wi-Fi scale, manual reading)",
+        "state": "State — non-numeric sensor (tariff colour, presence)",
+        "duration": "Duration — time elapsed since an event (litter maintenance, last visit)",
+        "calendar": "Calendar — upcoming events from a calendar.* entity",
+        "weather": "Weather — composite block (weather.* entity or Open-Meteo sensor)",
+        "manual": "Manual — value entered via input_number / input_text / input_datetime"
+      }
+    },
+    "duration_source_type": {
+      "options": {
+        "input_datetime": "input_datetime — the entity IS the reference timestamp (recommended)",
+        "sensor_last_changed": "last_changed — use the sensor's last_changed metadata",
+        "sensor_attribute_datetime": "Attribute datetime — read a datetime from a sensor attribute"
+      }
+    },
+    "duration_display_unit": {
+      "options": {
+        "auto": "Auto (adapts to the duration)",
+        "days": "Days",
+        "hours": "Hours",
+        "minutes": "Minutes"
+      }
+    },
+    "weather_source_format": {
+      "options": {
+        "ha_weather": "Native HA weather.* entity",
+        "structured_attributes": "Sensor with current/hourly/daily attributes (Open-Meteo)"
+      }
+    },
+    "manual_value_type": {
+      "options": {
+        "number": "Number (input_number)",
+        "text": "Text (input_text)",
+        "datetime": "Date/time (input_datetime)"
+      }
+    },
+    "instantaneous_aggregation": {
+      "options": {
+        "mean": "Daily mean",
+        "last": "Last known value"
+      }
+    },
+    "direction_preference": {
+      "options": {
+        "higher_is_better": "Higher is better",
+        "lower_is_better": "Lower is better",
+        "neutral": "Neutral (no judgment)"
+      }
+    },
+    "comparison_type": {
+      "options": {
+        "yesterday": "Yesterday (D-1)",
+        "same_weekday_last_week": "Same weekday last week (D-7)",
+        "rolling_avg": "Rolling average",
+        "rolling_min": "Rolling min",
+        "rolling_max": "Rolling max",
+        "target_value": "Target value",
+        "trend": "Trend (linear regression)",
+        "same_week_last_year": "Same week last year (needs ≥53 weeks of LTS)"
+      }
+    },
+    "anomaly_mode": {
+      "options": {
+        "none": "Disabled",
+        "z_score": "Z-score (sigmas from the mean)",
+        "static_threshold": "Static threshold (min/max value)",
+        "pct_change_vs_rolling_avg": "% change vs rolling average"
+      }
+    },
+    "anomaly_severity": {
+      "options": {
+        "info": "Info",
+        "warning": "Warning",
+        "critical": "Critical"
+      }
+    },
+    "weekly_aggregation": {
+      "options": {
+        "sum": "Sum",
+        "mean": "Mean",
+        "max": "Max",
+        "min": "Min",
+        "latest": "Latest",
+        "none": "None (excluded from weekly)"
+      }
+    },
+    "ai_insight_policy": {
+      "options": {
+        "optional": "Optional (AI may comment)",
+        "required": "Required (AI must comment)",
+        "forbidden": "Forbidden (purely factual)"
       }
     }
   },

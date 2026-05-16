@@ -274,6 +274,11 @@
   },
   "config_subentries": {
     "field": {
+      "initiate_flow": {
+        "user": "Ajouter un champ",
+        "reconfigure": "Modifier ce champ"
+      },
+      "entry_type": "Champ Morning Brief",
       "step": {
         "user": {
           "title": "Champ — source",
@@ -333,6 +338,11 @@
       }
     },
     "category": {
+      "initiate_flow": {
+        "user": "Ajouter une catégorie",
+        "reconfigure": "Modifier cette catégorie"
+      },
+      "entry_type": "Catégorie Morning Brief",
       "step": {
         "user": {
           "title": "Catégorie",
@@ -415,6 +425,103 @@
         "schedule": "L1 — horaire fixe (cron-style)",
         "sensor_based": "L2 — basé sur un capteur (avec délai + fallback)",
         "external": "L3 — externe (votre propre automatisation)"
+      }
+    },
+    "provider_type": {
+      "options": {
+        "cumulative": "Cumulatif — compteur qui se remet à zéro (pas, kWh, minutes de sommeil)",
+        "instantaneous": "Instantané — valeur lue à l'instant T (température, FC, poids)",
+        "event_based": "Événement — capteur qui ne change que sur événement (balance Wi-Fi, lecture manuelle)",
+        "state": "État — capteur non-numérique (couleur Tempo, présence)",
+        "duration": "Durée — temps écoulé depuis un événement (entretien litière, dernière visite)",
+        "calendar": "Calendrier — événements à venir d'une entité calendar.*",
+        "weather": "Météo — bloc composite (entité weather.* ou capteur Open-Meteo)",
+        "manual": "Manuel — valeur saisie via un input_number / input_text / input_datetime"
+      }
+    },
+    "duration_source_type": {
+      "options": {
+        "input_datetime": "input_datetime — l'entité EST l'horodatage de référence (recommandé)",
+        "sensor_last_changed": "Dernier changement — utilise le last_changed du capteur",
+        "sensor_attribute_datetime": "Attribut datetime — lit une date dans un attribut du capteur"
+      }
+    },
+    "duration_display_unit": {
+      "options": {
+        "auto": "Auto (s'adapte à la durée)",
+        "days": "Jours",
+        "hours": "Heures",
+        "minutes": "Minutes"
+      }
+    },
+    "weather_source_format": {
+      "options": {
+        "ha_weather": "Entité weather.* native HA",
+        "structured_attributes": "Capteur avec attributs current/hourly/daily (Open-Meteo)"
+      }
+    },
+    "manual_value_type": {
+      "options": {
+        "number": "Nombre (input_number)",
+        "text": "Texte (input_text)",
+        "datetime": "Date/heure (input_datetime)"
+      }
+    },
+    "instantaneous_aggregation": {
+      "options": {
+        "mean": "Moyenne sur la journée",
+        "last": "Dernière valeur connue"
+      }
+    },
+    "direction_preference": {
+      "options": {
+        "higher_is_better": "Plus haut = mieux",
+        "lower_is_better": "Plus bas = mieux",
+        "neutral": "Neutre (pas de jugement)"
+      }
+    },
+    "comparison_type": {
+      "options": {
+        "yesterday": "Hier (J-1)",
+        "same_weekday_last_week": "Même jour la semaine passée (J-7)",
+        "rolling_avg": "Moyenne glissante",
+        "rolling_min": "Min glissant",
+        "rolling_max": "Max glissant",
+        "target_value": "Valeur cible",
+        "trend": "Tendance (régression linéaire)",
+        "same_week_last_year": "Même semaine l'année passée (nécessite ≥53 semaines de LTS)"
+      }
+    },
+    "anomaly_mode": {
+      "options": {
+        "none": "Désactivé",
+        "z_score": "Z-score (écart par rapport à la moyenne, en sigmas)",
+        "static_threshold": "Seuil fixe (valeur min/max)",
+        "pct_change_vs_rolling_avg": "% de variation par rapport à la moyenne glissante"
+      }
+    },
+    "anomaly_severity": {
+      "options": {
+        "info": "Info",
+        "warning": "Avertissement",
+        "critical": "Critique"
+      }
+    },
+    "weekly_aggregation": {
+      "options": {
+        "sum": "Somme",
+        "mean": "Moyenne",
+        "max": "Max",
+        "min": "Min",
+        "latest": "Dernière valeur",
+        "none": "Aucun (champ exclu de l'hebdo)"
+      }
+    },
+    "ai_insight_policy": {
+      "options": {
+        "optional": "Optionnel (l'IA peut commenter)",
+        "required": "Requis (l'IA doit commenter)",
+        "forbidden": "Interdit (champ purement factuel)"
       }
     }
   },

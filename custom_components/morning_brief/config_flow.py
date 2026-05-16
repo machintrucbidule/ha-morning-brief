@@ -285,30 +285,11 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "config": dict(user_input),
             }
             return await self.async_step_ai_provider()
+        from ._form_schemas import trigger_schedule_params
+
         return self.async_show_form(
             step_id="trigger_schedule",
-            data_schema=vol.Schema(
-                {
-                    vol.Required("time", default="07:30"): selector.TimeSelector(),
-                    vol.Optional(
-                        "days_of_week", default=list(range(7))
-                    ): selector.SelectSelector(
-                        selector.SelectSelectorConfig(
-                            options=[
-                                selector.SelectOptionDict(value="0", label="Mon"),
-                                selector.SelectOptionDict(value="1", label="Tue"),
-                                selector.SelectOptionDict(value="2", label="Wed"),
-                                selector.SelectOptionDict(value="3", label="Thu"),
-                                selector.SelectOptionDict(value="4", label="Fri"),
-                                selector.SelectOptionDict(value="5", label="Sat"),
-                                selector.SelectOptionDict(value="6", label="Sun"),
-                            ],
-                            multiple=True,
-                            mode=selector.SelectSelectorMode.LIST,
-                        )
-                    ),
-                }
-            ),
+            data_schema=trigger_schedule_params({}),
         )
 
     async def async_step_trigger_sensor_based(
@@ -478,9 +459,6 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_copy_from(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        existing = [
-            entry.entry_id for entry in self.hass.config_entries.async_entries(DOMAIN)
-        ]
         if user_input is not None:
             copy_id = user_input.get("copy_from_instance") or None
             if copy_id == "_none_":
@@ -493,7 +471,20 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_create_entry(
                 title=str(self._draft["instance_name"]), data=self._draft
             )
-        choices = ["_none_", *existing]
+        # Build (value, label) options so the user sees the instance name,
+        # not the opaque entry_id, in the dropdown.
+        options: list[selector.SelectOptionDict] = [
+            selector.SelectOptionDict(value="_none_", label="— none —")
+        ]
+        for entry in self.hass.config_entries.async_entries(DOMAIN):
+            label = (
+                entry.title
+                or str(entry.data.get("instance_name") or "")
+                or entry.entry_id
+            )
+            options.append(
+                selector.SelectOptionDict(value=entry.entry_id, label=label)
+            )
         return self.async_show_form(
             step_id="copy_from",
             data_schema=vol.Schema(
@@ -502,7 +493,7 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         "copy_from_instance", default="_none_"
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
-                            options=choices,
+                            options=options,
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         )
                     ),
