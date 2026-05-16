@@ -44,19 +44,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     store = BriefStore(hass, entry.entry_id, retention=retention)
     coordinator = MorningBriefCoordinator(hass, entry, store)
 
+    # Shared pool of fields & categories (D12 override per DECISIONS.md).
+    # Load once per HA process; subsequent entries hit the cache.
+    from .pool import async_get_pool
+
+    pool = async_get_pool(hass)
+    if not pool._loaded:  # noqa: SLF001 — one-shot bootstrap
+        await pool.async_load()
+        # One-shot migration: any pre-rc.9 per-instance subentry that
+        # isn't already in the pool gets copied over (idempotent — the
+        # migrated_subentry_id flag prevents duplicates on restart).
+        await pool.async_migrate_from_subentries()
+
     _attach_logical_day_strategy(hass, entry, coordinator)
     _attach_ai_provider(hass, entry, coordinator)
     await _attach_prompt_template(hass, coordinator)
-    _attach_subentries(entry, coordinator)
+    _attach_pool_view(entry, coordinator, pool)
     _attach_options(entry, coordinator)
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-
-    # First-setup one-shot copy of subentries from a source instance.
-    # async_add_subentry triggers an entry reload, which re-runs this
-    # function — the _copy_done flag in entry.data prevents recursion.
-    if entry.data.get("copy_from_instance") and not entry.data.get("_copy_done"):
-        hass.async_create_task(_maybe_copy_subentries(hass, entry))
 
     # Initial refresh reads the latest persisted brief — does NOT regenerate.
     await coordinator.async_config_entry_first_refresh()
@@ -145,29 +151,33 @@ async def _attach_prompt_template(
         coordinator.prompt_template = None
 
 
-def _attach_subentries(
-    entry: ConfigEntry, coordinator: MorningBriefCoordinator
+def _attach_pool_view(
+    entry: ConfigEntry,
+    coordinator: MorningBriefCoordinator,
+    pool: Any,  # FieldsCategoriesPool — typed as Any to avoid import cycle
 ) -> None:
-    """Split the entry's subentries into fields + categories lists."""
-    from .subentries import iter_subentries
+    """Read fields + categories applicable to this entry from the pool.
 
+    Replaces the old per-entry subentries reader (D12 override). Each
+    pool item's ``applicable_to`` list is filtered against this entry's
+    ``entry_id``; items with an empty applicable_to are visible in
+    every instance.
+    """
     fields: list[dict[str, Any]] = []
+    for item in pool.fields_for_entry(entry.entry_id):
+        fields.append(dict(item.get("data", {}) or {}))
     categories: list[dict[str, Any]] = []
-    for sub in iter_subentries(entry):
-        kind = getattr(sub, "subentry_type", None) or getattr(sub, "type", None)
-        data = dict(getattr(sub, "data", {}) or {})
-        if kind == "field":
-            fields.append(data)
-        elif kind == "category":
-            categories.append(
-                {
-                    "id": data.get("category_id") or data.get("id"),
-                    "label": data.get("label", ""),
-                    "icon": data.get("icon", ""),
-                    "order": int(data.get("order", 0)),
-                    "display_when_empty": bool(data.get("display_when_empty", False)),
-                }
-            )
+    for item in pool.categories_for_entry(entry.entry_id):
+        data = dict(item.get("data", {}) or {})
+        categories.append(
+            {
+                "id": data.get("category_id") or data.get("id"),
+                "label": data.get("label", ""),
+                "icon": data.get("icon", ""),
+                "order": int(data.get("order", 0)),
+                "display_when_empty": bool(data.get("display_when_empty", False)),
+            }
+        )
     coordinator.fields = fields
     coordinator.categories = categories
 
