@@ -308,7 +308,7 @@ class FieldSubentryFlow(_SubentryBase):
         from ...pool import async_get_pool
 
         applicable = list(self._draft.pop("_pool_applicable_to", []) or [])
-        pool = async_get_pool(self.hass)  # type: ignore[attr-defined]
+        pool = async_get_pool(self.hass)
         if not pool._loaded:  # noqa: SLF001
             await pool.async_load()
         # Reconfigure: try to find an existing pool item that points at

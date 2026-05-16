@@ -110,7 +110,7 @@ class CategorySubentryFlow(_SubentryBase):
 
         if user_input is not None:
             applicable = list(user_input.get("applicable_to") or [])
-            pool = async_get_pool(self.hass)  # type: ignore[attr-defined]
+            pool = async_get_pool(self.hass)
             if not pool._loaded:  # noqa: SLF001
                 await pool.async_load()
             existing_id: str | None = None
