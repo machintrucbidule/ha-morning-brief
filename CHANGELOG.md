@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0-rc.4] — 2026-05-16
+
+### Fixed
+
+- **CI was red on rc.3 — code in the release was broken.** I tagged
+  `v1.0.0-rc.3` without waiting for the CI to confirm green, and 4 real
+  errors slipped through:
+  - `sensor.py`: an Edit malformed the file — `_device_info()` was
+    inserted in the middle of `MorningBriefStatusSensor`, leaving
+    `native_value` + `extra_state_attributes` properties orphaned
+    outside any class (mypy "property used with a non-method"). The
+    Status sensor would have failed to load at runtime.
+  - `options_flow/__init__.py`: three mypy `dict.get` overload errors
+    on `data.get("logical_day", {})` because `MappingProxyType.get`
+    is strict-typed and rejected `dict[Never, Never]` as default. Fixed
+    by explicit `dict[str, Any]` casts.
+  - `options_flow/__init__.py:187`: ruff E501 line too long.
+  - `config_flow.py:297`: mypy typeddict-item on a SelectSelector
+    `options=[{"value": ..., "label": ...}]` list of plain dicts;
+    must use `selector.SelectOptionDict(...)` instances.
+- All four bugs were caught by CI on the rc.3 push but I had already
+  tagged + released. rc.4 fixes them and the lesson is encoded in the
+  session log.
+
+### Changed
+
+- Bump manifest.json version `1.0.0rc3` → `1.0.0rc4`.
+
 ## [1.0.0-rc.3] — 2026-05-16
 
 ### Fixed (live-HA install pass on rc.2)

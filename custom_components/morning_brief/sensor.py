@@ -99,17 +99,6 @@ class MorningBriefStatusSensor(CoordinatorEntity[MorningBriefCoordinator], Senso
         self._attr_name = f"{coordinator.instance_name or 'Morning Brief'} status"
         self._attr_device_info = _device_info(coordinator)
 
-
-def _device_info(coordinator: MorningBriefCoordinator) -> DeviceInfo:
-    """Single device per morning_brief instance (matches button.py)."""
-    return DeviceInfo(
-        identifiers={(DOMAIN, coordinator.entry_id)},
-        name=coordinator.instance_name or "Morning Brief",
-        manufacturer="Morning Brief",
-        model=coordinator.report_type,
-        entry_type=None,
-    )
-
     @property
     def native_value(self) -> str:
         return _state_from_data(self.coordinator.data)
@@ -126,3 +115,14 @@ def _device_info(coordinator: MorningBriefCoordinator) -> DeviceInfo:
             "ai_status": meta.get("ai_status"),
             "ai_provider": meta.get("ai_provider"),
         }
+
+
+def _device_info(coordinator: MorningBriefCoordinator) -> DeviceInfo:
+    """Single device per morning_brief instance (matches button.py)."""
+    return DeviceInfo(
+        identifiers={(DOMAIN, coordinator.entry_id)},
+        name=coordinator.instance_name or "Morning Brief",
+        manufacturer="Morning Brief",
+        model=coordinator.report_type,
+        entry_type=None,
+    )

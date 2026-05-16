@@ -295,13 +295,13 @@ class MorningBriefConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=[
-                                {"value": "0", "label": "Mon"},
-                                {"value": "1", "label": "Tue"},
-                                {"value": "2", "label": "Wed"},
-                                {"value": "3", "label": "Thu"},
-                                {"value": "4", "label": "Fri"},
-                                {"value": "5", "label": "Sat"},
-                                {"value": "6", "label": "Sun"},
+                                selector.SelectOptionDict(value="0", label="Mon"),
+                                selector.SelectOptionDict(value="1", label="Tue"),
+                                selector.SelectOptionDict(value="2", label="Wed"),
+                                selector.SelectOptionDict(value="3", label="Thu"),
+                                selector.SelectOptionDict(value="4", label="Fri"),
+                                selector.SelectOptionDict(value="5", label="Sat"),
+                                selector.SelectOptionDict(value="6", label="Sun"),
                             ],
                             multiple=True,
                             mode=selector.SelectSelectorMode.LIST,

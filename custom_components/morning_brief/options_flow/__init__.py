@@ -79,9 +79,9 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
     # ------------------------------------------------------------------ #
 
     def _initial_general(self) -> dict[str, Any]:
-        data = dict(self.config_entry.data or {})
-        ai = data.get("ai", {}) or {}
-        ai_cfg = ai.get("config", {}) or {}
+        data: dict[str, Any] = dict(self.config_entry.data or {})
+        ai: dict[str, Any] = dict(data.get("ai") or {})
+        ai_cfg: dict[str, Any] = dict(ai.get("config") or {})
         return {
             "instance_name": data.get("instance_name", ""),
             "language": data.get("language", "en"),
@@ -92,19 +92,23 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
         }
 
     def _initial_logical_day(self) -> dict[str, Any]:
-        ld = dict((self.config_entry.data or {}).get("logical_day", {}) or {})
-        cfg = ld.get("config", {}) or {}
+        data: dict[str, Any] = dict(self.config_entry.data or {})
+        ld: dict[str, Any] = dict(data.get("logical_day") or {})
+        cfg: dict[str, Any] = dict(ld.get("config") or {})
         return {
             "strategy": ld.get("strategy", "fixed_cutoff"),
             "cutoff_hour": cfg.get("cutoff_hour", DEFAULT_CUTOFF_HOUR),
             "sleep_sensor_entity": cfg.get("sleep_sensor_entity", ""),
             "awake_state": cfg.get("awake_state", "off"),
-            "hard_fallback_hour": cfg.get("hard_fallback_hour", DEFAULT_HARD_FALLBACK_HOUR),
+            "hard_fallback_hour": cfg.get(
+                "hard_fallback_hour", DEFAULT_HARD_FALLBACK_HOUR
+            ),
         }
 
     def _initial_trigger(self) -> dict[str, Any]:
-        tr = dict((self.config_entry.data or {}).get("trigger", {}) or {})
-        cfg = tr.get("config", {}) or {}
+        data: dict[str, Any] = dict(self.config_entry.data or {})
+        tr: dict[str, Any] = dict(data.get("trigger") or {})
+        cfg: dict[str, Any] = dict(tr.get("config") or {})
         return {
             "trigger_level": tr.get("level", "schedule"),
             "time": cfg.get("time", "07:30"),
@@ -117,7 +121,8 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
         }
 
     def _initial_option_section(self, section: str) -> dict[str, Any]:
-        return dict((self.config_entry.options or {}).get(section, {}) or {})
+        opts: dict[str, Any] = dict(self.config_entry.options or {})
+        return dict(opts.get(section) or {})
 
     def _is_morning(self) -> bool:
         return self.config_entry.data.get("report_type") == REPORT_TYPE_MORNING
@@ -183,8 +188,12 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
             ai_cfg["api_key"] = api_key
         if model := payload.get("ai_model"):
             ai_cfg["model"] = model
+        current_data: dict[str, Any] = dict(self.config_entry.data or {})
+        instance_name = (
+            payload.get("instance_name") or current_data.get("instance_name", "")
+        )
         self._save_to_data(
-            instance_name=payload.get("instance_name") or self.config_entry.data.get("instance_name", ""),
+            instance_name=instance_name,
             language=payload.get("language", "en"),
             ai={"provider_type": ai_provider, "config": ai_cfg},
         )
