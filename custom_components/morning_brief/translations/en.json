@@ -131,6 +131,8 @@
           "trigger_picker": "Trigger (when to generate)",
           "notification": "Notification (where to send)",
           "persistence": "Persistence (history size)",
+          "pool_fields": "Shared fields (manage visibility, delete)",
+          "pool_categories": "Shared categories (manage visibility, delete)",
           "reorder_fields": "Reorder fields",
           "reorder_categories": "Reorder categories",
           "advanced": "Advanced (logs, prompt, context)",
@@ -289,6 +291,27 @@
       "view_default_prompt": {
         "title": "Default AI prompt ({report_type})",
         "description": "Here is the Jinja2 prompt currently used to generate the brief. To customise it, copy this, edit it, then paste it into Advanced → AI prompt template override.\n\n```\n{prompt}\n```\n\nSubmit to return to the menu."
+      },
+      "pool_fields": {
+        "title": "Shared fields",
+        "description": "Fields currently in the shared pool:\n\n{listing}\n\nTo CREATE a new field, use the \"+ Add sub-item\" button on the integration page (the create flow writes to this pool too).\nFrom here you can edit a field's VISIBILITY (which instances it applies to) or DELETE it from the pool.",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "pool_categories": {
+        "title": "Shared categories",
+        "description": "Categories currently in the shared pool:\n\n{listing}\n\nTo CREATE a new category, use the \"+ Add sub-item\" button on the integration page.\nFrom here you can edit the VISIBILITY or DELETE.",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "pool_edit_applicable": {
+        "title": "Visibility — {label} ({kind})",
+        "description": "Pick the brief instances this item should appear in. Leave empty = visible in EVERY instance.",
+        "data": {
+          "applicable_to": "Visible in"
+        }
       }
     }
   },

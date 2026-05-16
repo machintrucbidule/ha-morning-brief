@@ -131,6 +131,8 @@
           "trigger_picker": "Déclencheur (quand générer)",
           "notification": "Notification (où envoyer le brief)",
           "persistence": "Persistance (taille de l'historique)",
+          "pool_fields": "Champs partagés (gérer visibilité, supprimer)",
+          "pool_categories": "Catégories partagées (gérer visibilité, supprimer)",
           "reorder_fields": "Réordonner les champs",
           "reorder_categories": "Réordonner les catégories",
           "advanced": "Avancé (logs, prompt, contexte)",
@@ -289,6 +291,27 @@
       "view_default_prompt": {
         "title": "Prompt IA par défaut ({report_type})",
         "description": "Voici le prompt Jinja2 actuellement utilisé pour générer le brief. Si vous voulez le personnaliser, copiez-le, modifiez-le, puis collez-le dans « Avancé → Surcharge du prompt IA ».\n\n```\n{prompt}\n```\n\nValidez pour revenir au menu."
+      },
+      "pool_fields": {
+        "title": "Champs partagés",
+        "description": "Liste des champs du pool partagé :\n\n{listing}\n\nPour CRÉER un nouveau champ, utilisez le bouton « + Ajouter un sous-élément » sur la page de l'intégration (la création ouvre le flow champ qui écrit aussi dans ce pool).\nIci vous pouvez modifier la VISIBILITÉ (à quelles instances le champ s'applique) ou SUPPRIMER un champ du pool.",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "pool_categories": {
+        "title": "Catégories partagées",
+        "description": "Liste des catégories du pool partagé :\n\n{listing}\n\nPour CRÉER une nouvelle catégorie, utilisez le bouton « + Ajouter un sous-élément » sur la page de l'intégration.\nIci vous pouvez modifier la VISIBILITÉ ou SUPPRIMER une catégorie.",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "pool_edit_applicable": {
+        "title": "Visibilité — {label} ({kind})",
+        "description": "Sélectionnez les instances de brief où cet élément doit apparaître. Ne rien cocher = visible dans TOUTES les instances.",
+        "data": {
+          "applicable_to": "Visible dans"
+        }
       }
     }
   },

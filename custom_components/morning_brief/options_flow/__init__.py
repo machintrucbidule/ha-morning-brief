@@ -77,6 +77,8 @@ _MENU_SECTIONS_ALWAYS = (
     "trigger_picker",
     "notification",
     "persistence",
+    "pool_fields",
+    "pool_categories",
     "reorder_fields",
     "reorder_categories",
     "advanced",
@@ -550,6 +552,179 @@ class MorningBriefOptionsFlow(config_entries.OptionsFlow):
                 "prompt": prompt,
             },
         )
+
+    # ------------------------------------------------------------------ #
+    # Shared pool — Champs (CRUD on the domain-level pool of fields)
+    # ------------------------------------------------------------------ #
+
+    async def async_step_pool_fields(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        return await self._pool_menu("field", "pool_fields", user_input)
+
+    async def async_step_pool_categories(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        return await self._pool_menu("category", "pool_categories", user_input)
+
+    async def _pool_menu(
+        self, kind: str, step_id: str, user_input: dict[str, Any] | None
+    ) -> ConfigFlowResult:
+        """List pool items + action SelectSelector for edit/delete."""
+        import voluptuous as vol
+
+        from ..pool import async_get_pool
+
+        pool = async_get_pool(self.hass)
+        if not pool._loaded:  # noqa: SLF001
+            await pool.async_load()
+        items = pool.list_fields() if kind == "field" else pool.list_categories()
+
+        if user_input is not None:
+            action = str(user_input.get("action", ""))
+            if action == "__back__":
+                return await self.async_step_init()
+            if action.startswith("delete::"):
+                item_id = action.split("::", 1)[1]
+                if kind == "field":
+                    await pool.async_remove_field(item_id)
+                else:
+                    await pool.async_remove_category(item_id)
+                return await self._pool_menu(kind, step_id, None)
+            if action.startswith("edit_applicable::"):
+                item_id = action.split("::", 1)[1]
+                self._pool_editing = {"kind": kind, "item_id": item_id}
+                return await self.async_step_pool_edit_applicable()
+            # Unknown action — fall through to re-render
+            return await self._pool_menu(kind, step_id, None)
+
+        # Build the action SelectSelector listing edit/delete per item
+        options: list[selector.SelectOptionDict] = []
+        listing_lines: list[str] = []
+        for item in items:
+            item_id = str(item.get("id"))
+            data = item.get("data", {}) or {}
+            label = (
+                data.get("label") or data.get("category_id") or item_id
+            )
+            applicable = item.get("applicable_to") or []
+            scope = (
+                ", ".join(self._entry_label(eid) for eid in applicable)
+                if applicable
+                else "**toutes les instances**"
+            )
+            listing_lines.append(f"- **{label}** — visible dans : {scope}")
+            options.append(
+                selector.SelectOptionDict(
+                    value=f"edit_applicable::{item_id}",
+                    label=f"📝 Modifier visibilité — {label}",
+                )
+            )
+            options.append(
+                selector.SelectOptionDict(
+                    value=f"delete::{item_id}",
+                    label=f"🗑 Supprimer — {label}",
+                )
+            )
+        options.append(
+            selector.SelectOptionDict(value="__back__", label="← Retour au menu")
+        )
+        listing = "\n".join(listing_lines) if listing_lines else "_(pool vide)_"
+
+        return self.async_show_form(
+            step_id=step_id,
+            data_schema=vol.Schema(
+                {
+                    vol.Required("action"): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=options,
+                            mode=selector.SelectSelectorMode.LIST,
+                        )
+                    ),
+                }
+            ),
+            description_placeholders={"listing": listing},
+        )
+
+    async def async_step_pool_edit_applicable(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Edit the applicable_to list of a pool item picked from the menu."""
+        import voluptuous as vol
+
+        from ..const import DOMAIN
+        from ..pool import async_get_pool
+
+        editing = getattr(self, "_pool_editing", None) or {}
+        kind = str(editing.get("kind") or "field")
+        item_id = str(editing.get("item_id") or "")
+        pool = async_get_pool(self.hass)
+        if not pool._loaded:  # noqa: SLF001
+            await pool.async_load()
+        items = pool.list_fields() if kind == "field" else pool.list_categories()
+        current = next((i for i in items if str(i.get("id")) == item_id), None)
+        if current is None:
+            # Item vanished — bounce back to the menu.
+            return await self._pool_menu(
+                kind,
+                "pool_fields" if kind == "field" else "pool_categories",
+                None,
+            )
+
+        if user_input is not None:
+            applicable = list(user_input.get("applicable_to") or [])
+            if kind == "field":
+                await pool.async_update_field(item_id, applicable_to=applicable)
+            else:
+                await pool.async_update_category(
+                    item_id, applicable_to=applicable
+                )
+            self._pool_editing = {}
+            return await self._pool_menu(
+                kind,
+                "pool_fields" if kind == "field" else "pool_categories",
+                None,
+            )
+
+        entries = list(self.hass.config_entries.async_entries(DOMAIN))
+        options = [
+            selector.SelectOptionDict(
+                value=e.entry_id, label=e.title or e.entry_id
+            )
+            for e in entries
+        ]
+        return self.async_show_form(
+            step_id="pool_edit_applicable",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        "applicable_to",
+                        default=list(current.get("applicable_to") or []),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=options,
+                            multiple=True,
+                            mode=selector.SelectSelectorMode.LIST,
+                        )
+                    ),
+                }
+            ),
+            description_placeholders={
+                "label": str(
+                    current.get("data", {}).get("label") or item_id
+                ),
+                "kind": "champ" if kind == "field" else "catégorie",
+            },
+        )
+
+    def _entry_label(self, entry_id: str) -> str:
+        """Human-readable label for an entry_id, used in pool listings."""
+        from ..const import DOMAIN
+
+        entry = self.hass.config_entries.async_get_entry(entry_id)
+        if entry is None:
+            return entry_id
+        return entry.title or entry.data.get("instance_name") or entry_id
 
     # ------------------------------------------------------------------ #
     # Done — close the dialog
